@@ -81,11 +81,18 @@ class PicoBlaze:
     def __str__(self):
         return "PicoBlaze (@%8.8x)" % self.addr
 
-    def status(self):
+    def read(self, addr = None):
         val = bf(self.dev.read(self.addr))
-        print "%3.3x: %s [%s] [%s]" % (val[27:18],self.decode(val[17:0]),"RESET" if val[31] else "RUNNING","WR ENABLED" if val[30] else "WR DISABLED")
+        oldval = val
+        if addr is not None:
+            val[27:18] = addr
+            val[30] = 0
+            self.dev.write(self.addr, int(val))
+            val = bf(self.dev.read(self.addr))
+            self.dev.write(self.addr, int(oldval))
+        return "%3.3x: %s [%s]" % (val[27:18],self.decode(val[17:0]),"RESET" if val[31] else "RUNNING")
 
-    def program(self):
+    def program(self, path):
         oldctrl = bf(self.dev.read(self.addr))
         # 'addr' points to the BRAM control register
         ctrl = bf(0)
