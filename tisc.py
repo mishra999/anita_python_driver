@@ -52,6 +52,12 @@ class GLITC:
     def __init__(self, dev, base):
         self.dev = dev
         self.base = base
+
+    def __repr__(self):
+        return "<GLITC in dev:%r at %8.8x>" % (self.dev, self.base)
+
+    def __str__(self):
+        return "GLITC (@%8.8x)" % self.base
         
     def identify(self):
         ident = bf(self.read(self.map['ident']))

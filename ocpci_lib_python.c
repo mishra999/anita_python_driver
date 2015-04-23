@@ -11,6 +11,7 @@
 typedef struct {
   PyObject_HEAD
   ocpci_dev_h dev;
+  PyObject *path;
 } ocpci_Device;
 
 static PyObject *
@@ -39,6 +40,7 @@ ocpci_Device_write(ocpci_Device *self, PyObject *args) {
 }
 
 static PyMemberDef ocpci_Device_members[] = {
+  {"path", T_OBJECT_EX, offsetof(ocpci_Device, path), 0, "UIO device path"},
   { NULL } /* Sentinel */
 };
 
@@ -61,6 +63,13 @@ static PyObject *
 ocpci_Device_new( PyTypeObject *type, PyObject *args, PyObject *kwds) {
   ocpci_Device *self;
   self = (ocpci_Device *) type->tp_alloc(type, 0);
+  if (self != NULL) {
+    self->path = PyString_FromString("");
+    if (self->path == NULL) {
+      Py_DECREF(self);
+      return NULL;
+    }
+  }
   return (PyObject *) self;
 }
 
@@ -72,13 +81,18 @@ const uint32_t ocpci_Device_wb_size_default = 8*1024*1024;
 static int
 ocpci_Device_init( ocpci_Device *self, PyObject *args, PyObject *kwds) {
   static char *kwlist[] = {"path","wb_size",NULL};
+  PyObject *path_obj;
   const char *path;
   uint32_t wb_size;
   path = ocpci_Device_path_default;
   wb_size = ocpci_Device_wb_size_default;
 
-  if (!PyArg_ParseTupleAndKeywords(args, kwds, "|sI", kwlist,
+  if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OI", kwlist,
 				   &path, &wb_size)) return -1;
+  path_obj = PyString_FromString(path);
+  if (path_obj == NULL) return -1;
+  Py_DECREF(self->path);
+  self->path = path_obj;
   if (ocpci_lib_open(&self->dev, path, wb_size)) return -1;
   return 0;
 }
