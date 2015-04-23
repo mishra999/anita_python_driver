@@ -54,7 +54,7 @@ class GLITC:
         self.base = base
 
     def __repr__(self):
-        return "<GLITC in dev:%r at %8.8x>" % (self.dev, self.base)
+        return "<GLITC in dev:%r at 0x%8.8x>" % (self.dev, self.base)
 
     def __str__(self):
         return "GLITC (@%8.8x)" % self.base
@@ -195,7 +195,13 @@ class TISC(ocpci.Device):
         self.GB = GLITC(self, self.map['GB'])
         self.GC = GLITC(self, self.map['GC'])
         self.GD = GLITC(self, self.map['GD'])
-        
+
+    def __repr__(self):
+        return "<TISC at %s>" % self.path
+
+    def __str__(self):
+        return "TISC (@%s)" % self.path
+    
     def spi_cs(self, device, state):
         # We only have 1 SPI device.
         val = bf(self.read(self.map['spi_cs']))
