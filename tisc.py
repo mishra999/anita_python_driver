@@ -200,14 +200,18 @@ class GLITC:
         self.dev.write(addr + self.base, value)
 
     def dac(self, channel, value = None):
-        if value == None:
+        if channel > 8:
+            print "Illegal DAC channel (%d)" % channel
+            return None
+        if value is None:
             return self.read(self.map['settings_dac'] + channel*4)
         else:
             value = value & 0x3FF
+            print "Writing %8.8x to DAC %d" % ( value, channel)
             self.write(self.map['settings_dac'] + channel*4, value)
             return value
     def atten(self, channel, value = None):
-        if value = None:
+        if value is None:
             return self.read(self.map['settings_atten'] + channel*4)
         else:
             value = value & 0x1F
