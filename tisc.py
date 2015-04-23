@@ -167,11 +167,13 @@ class PicoBlaze:
                 return "LOAD&RETURN s%1.1X, %2.2X" % (instr[11:8], instr[7:0])
 
 class GLITC:
-    map = { 'ident'        : 0x000000,
-            'ver'          : 0x000004,
-            'settings_sc'  : 0x000178,
-            'settings_pb'  : 0x00017C,
-            'phasescan_pb' : 0x000058}
+    map = { 'ident'          : 0x000000,
+            'ver'            : 0x000004,
+            'settings_dac'   : 0x000140,
+            'settings_atten' : 0x000160,
+            'settings_sc'    : 0x000178,
+            'settings_pb'    : 0x00017C,
+            'phasescan_pb'   : 0x000058}
             
     def __init__(self, dev, base):
         self.dev = dev
@@ -196,7 +198,22 @@ class GLITC:
     
     def write(self, addr, value):
         self.dev.write(addr + self.base, value)
-        
+
+    def dac(self, channel, value = None):
+        if value == None:
+            return self.read(self.map['settings_dac'] + channel*4)
+        else:
+            value = value & 0x3FF
+            self.write(self.map['settings_dac'] + channel*4, value)
+            return value
+    def atten(self, channel, value = None):
+        if value = None:
+            return self.read(self.map['settings_atten'] + channel*4)
+        else:
+            value = value & 0x1F
+            self.write(self.map['settings_atten'] + channel*4, value)
+            return value
+
 class SPI:
     map = { 'SPCR'       : 0x000000,
             'SPSR'       : 0x000004,
