@@ -210,6 +210,19 @@ class GLITC:
             print "Writing %8.8x to DAC %d" % ( value, channel)
             self.write(self.map['settings_dac'] + channel*4, value)
             return value
+
+    def dac_mv(self, channel, value = None):
+        if channel > 8:
+            print "Illegal DAC channel (%d)" % channel
+            return None
+        if value is None:
+            return int(self.read(self.map['settings_dac']+channel*4)*2500/4095)
+        else:
+            value = int(value*4095./2500.) & 0xFFF
+            print "Writing %8.8x to DAC %d" % (value, channel)
+            self.write(self.map['settings_dac'] + channel*4, value)
+            return int(value*4095./2500.)
+            
     def atten(self, channel, value = None):
         if value is None:
             return self.read(self.map['settings_atten'] + channel*4)
