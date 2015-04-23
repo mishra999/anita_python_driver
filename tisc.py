@@ -206,7 +206,7 @@ class GLITC:
         if value is None:
             return self.read(self.map['settings_dac'] + channel*4)
         else:
-            value = value & 0x3FF
+            value = value & 0xFFF
             print "Writing %8.8x to DAC %d" % ( value, channel)
             self.write(self.map['settings_dac'] + channel*4, value)
             return value
