@@ -87,7 +87,7 @@ ocpci_Device_init( ocpci_Device *self, PyObject *args, PyObject *kwds) {
   path = ocpci_Device_path_default;
   wb_size = ocpci_Device_wb_size_default;
 
-  if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OI", kwlist,
+  if (!PyArg_ParseTupleAndKeywords(args, kwds, "|sI", kwlist,
 				   &path, &wb_size)) return -1;
   path_obj = PyString_FromString(path);
   if (path_obj == NULL) return -1;
