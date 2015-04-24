@@ -173,6 +173,8 @@ class GLITC:
             'DPCTRL0'        : 0x000080,
             'DPCTRL1'        : 0x000084,
             'DPTRAINING'     : 0x00008C,
+            'RDINPUT'        : 0x000100,
+            'RDCTRL'         : 0x000104,
             'settings_dac'   : 0x000140,
             'settings_atten' : 0x000160,
             'settings_sc'    : 0x000178,
@@ -243,7 +245,27 @@ class GLITC:
                 val[31] = value
             self.write(self.map['DPCTRL1'], int(val))
             return value
-        
+
+    def rdac(self, ritc, channel, value = None):
+        if ritc > 1:
+            print "Illegal RITC channel %d" % ritc
+            return None
+        if channel > 32:
+            print "Illegal RITC DAC channel %d" % channel
+            return None
+        if value == None:
+        else:
+            val = bf(0x0)
+            val[11:0] = value
+            val[17:12] = channel
+            val[18] = ritc
+            self.write(self.map['RDINPUT'], int(val))
+            self.write(self.map['RDCTRL'], 0x1)
+            val = bf(self.read(self.map['RDCTRL']))
+            while val[1]:
+                print "Loader busy, waiting..."
+                val = bf(self.read(self.map['RDCTRL']))
+    
     def identify(self):
         ident = bf(self.read(self.map['ident']))
         ver = bf(self.read(self.map['ver']))
