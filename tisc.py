@@ -204,6 +204,7 @@ class GLITC:
         print "                          : SERDES is %sin reset" % ("" if ctrl[2] else "not ")
         print "                          : DELAYCTRL is %sin reset" % ("" if ctrl[3] else "not ")
         print "                          : DELAYCTRL is %sready" % ("" if ctrl[4] else "not ")
+        print "                          : Datapath inputs are %senabled" % ("not" if ctrl[5] else "")
         ctrl = bf(self.read(self.map['DPCTRL1']))
         print "VCDL status (%8.8x)    : REFCLK R0, CH0 is %s" % (int(ctrl)&0xFFFFFFFF, "high" if ctrl[16] else "low")
         print "                          : REFCLK R0, CH1 is %s" % ("high" if ctrl[17] else "low")
@@ -215,6 +216,14 @@ class GLITC:
         print "                          : R1 VCDL is %srunning" % ("" if ctrl[31] else "not ")
         ctrl = bf(self.read(self.map['DPTRAINING']))
         print "Training status (%8.8x): Training is %s" % (int(ctrl)&0xFFFFFFFF, "off" if ctrl[31] else "on")
+
+    def datapath_input_ctrl(self, enable):
+        val = bf(self.read(self.map['DPCTRL0']))
+        if enable:
+            val[5] = 0
+        else:
+            val[5] = 1
+        self.write(self.map['DPCTRL0'], int(val))
 
     def vcdl_pulse(self, channel):
         if channel > 1:
