@@ -194,23 +194,23 @@ class GLITC:
     def status(self):
         ctrl = bf(self.read(self.map['control']))
         print "Clock status (%8.8x)   : SYSCLK = REFCLK%s" % (int(ctrl)&0xFFFFFFFF, "" if ctrl[0] else "x6.5")
-        print "                          : 6.5x MMCM is %spowered down" % "" if ctrl[1] else "not "
-        print "                          : MMCMs are %sin reset" % "" if ctrl[2] else "not "
+        print "                          : 6.5x MMCM is %spowered down" % ("" if ctrl[1] else "not ")
+        print "                          : MMCMs are %sin reset" % ("" if ctrl[2] else "not ")
         ctrl = bf(self.read(self.map['DPCTRL0']))
         print "Datapath status (%8.8x): FIFO is %sin reset" % (int(ctrl)&0xFFFFFFFF, "" if ctrl[0] else "not ")
-        print "                          : FIFO is %senabled" % "" if ctrl[1] else "not "
-        print "                          : SERDES is %sin reset" % "" if ctrl[2] else "not "
-        print "                          : DELAYCTRL is %sin reset" % "" if ctrl[3] else "not "
-        print "                          : DELAYCTRL is %sready" % "" if ctrl[4] else "not "
+        print "                          : FIFO is %senabled" % ("" if ctrl[1] else "not ")
+        print "                          : SERDES is %sin reset" % ("" if ctrl[2] else "not ")
+        print "                          : DELAYCTRL is %sin reset" % ("" if ctrl[3] else "not ")
+        print "                          : DELAYCTRL is %sready" % ("" if ctrl[4] else "not ")
         ctrl = bf(self.read(self.map['DPCTRL1']))
         print "VCDL status (%8.8x)    : REFCLK R0, CH0 is %s" % (int(ctrl)&0xFFFFFFFF, "high" if ctrl[16] else "low")
-        print "                          : REFCLK R0, CH1 is %s" % "high" if ctrl[17] else "low"
-        print "                          : REFCLK R0, CH2 is %s" % "high" if ctrl[18] else "low"
-        print "                          : REFCLK R1, CH0 is %s" % "high" if ctrl[19] else "low"
-        print "                          : REFCLK R1, CH1 is %s" % "high" if ctrl[20] else "low"
-        print "                          : REFCLK R1, CH2 is %s" % "high" if ctrl[21] else "low"
-        print "                          : R0 VCDL is %srunning" % "" if ctrl[29] else "not "
-        print "                          : R1 VCDL is %srunning" % "" if ctrl[31] else "not "
+        print "                          : REFCLK R0, CH1 is %s" % ("high" if ctrl[17] else "low")
+        print "                          : REFCLK R0, CH2 is %s" % ("high" if ctrl[18] else "low")
+        print "                          : REFCLK R1, CH0 is %s" % ("high" if ctrl[19] else "low")
+        print "                          : REFCLK R1, CH1 is %s" % ("high" if ctrl[20] else "low")
+        print "                          : REFCLK R1, CH2 is %s" % ("high" if ctrl[21] else "low")
+        print "                          : R0 VCDL is %srunning" % ("" if ctrl[29] else "not ")
+        print "                          : R1 VCDL is %srunning" % ("" if ctrl[31] else "not ")
         ctrl = bf(self.read(self.map['DPTRAINING']))
         print "Training status (%8.8x): Training is %s" % (int(ctrl)&0xFFFFFFFF, "off" if ctrl[31] else "on")
     
