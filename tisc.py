@@ -253,7 +253,9 @@ class GLITC:
         if channel > 32:
             print "Illegal RITC DAC channel %d" % channel
             return None
-        if value == None:
+        if value is None:
+            print "RITC DAC readback not supported yet"
+            return None
         else:
             val = bf(0x0)
             val[11:0] = value
