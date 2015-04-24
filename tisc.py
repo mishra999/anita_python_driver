@@ -213,7 +213,37 @@ class GLITC:
         print "                          : R1 VCDL is %srunning" % ("" if ctrl[31] else "not ")
         ctrl = bf(self.read(self.map['DPTRAINING']))
         print "Training status (%8.8x): Training is %s" % (int(ctrl)&0xFFFFFFFF, "off" if ctrl[31] else "on")
-    
+
+    def vcdl_pulse(self, channel):
+        if channel > 1:
+            print "Illegal RITC channel (%d)" % channel
+            return
+        val = bf(self.read(self.map['DPCTRL1']))
+        if channel == 0:
+            val[28] = 1
+        else:
+            val[30] = 1
+        self.write(self.map['DPCTRL1'], int(val))
+        
+    def vcdl(self, channel, value = None):
+        if channel > 1:
+            print "Illegal RITC channel (%d)" % channel
+            return None
+        if value is None:
+            val = bf(self.read(self.map['DPCTRL1']))
+            if channel == 0:
+                return 1 if val[29] else 0
+            else:
+                return 1 if val[31] else 0
+        else:
+            val = bf(self.read(self.map['DPCTRL1']))
+            if channel == 0:
+                val[29] = value
+            else:
+                val[31] = value
+            self.write(self.map['DPCTRL1'], int(val))
+            return value
+        
     def identify(self):
         ident = bf(self.read(self.map['ident']))
         ver = bf(self.read(self.map['ver']))
