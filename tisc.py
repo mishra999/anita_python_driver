@@ -1,6 +1,7 @@
 import ocpci
 import struct
 import sys
+import time
 
 #
 # Bitfield manipulation. Note that ordering
@@ -172,7 +173,8 @@ class GLITC:
             'control'        : 0x000008,
             'DPCTRL0'        : 0x000080,
             'DPCTRL1'        : 0x000084,
-            'DPTRAINING'     : 0x00008C,
+            'DPTRAINING'     : 0x000088,
+            'DPCOUNTER'      : 0x00008C,
             'RDINPUT'        : 0x000100,
             'RDCTRL'         : 0x000104,
             'settings_dac'   : 0x000140,
@@ -202,7 +204,7 @@ class GLITC:
         print "Datapath status (%8.8x): FIFO is %senabled" % (int(ctrl)&0xFFFFFFFF, "" if ctrl[1] else "not ")
         print "                          : FIFO is %senabled" % ("" if ctrl[1] else "not ")
         print "                          : DELAYCTRL is %sready" % ("" if ctrl[4] else "not ")
-        print "                          : Datapath inputs are %senabled" % ("not" if ctrl[5] else "")
+        print "                          : Datapath inputs are %senabled" % ("not " if ctrl[5] else "")
         ctrl = bf(self.read(self.map['DPCTRL1']))
         print "VCDL status (%8.8x)    : REFCLK R0, CH0 is %s" % (int(ctrl)&0xFFFFFFFF, "high" if ctrl[16] else "low")
         print "                          : REFCLK R0, CH1 is %s" % ("high" if ctrl[17] else "low")
@@ -217,10 +219,11 @@ class GLITC:
 
     def datapath_input_ctrl(self, enable):
         val = bf(self.read(self.map['DPCTRL0']))
-        if enable:
-            val[5] = 0
-        else:
+        if enable == 0:
             val[5] = 1
+        else:
+            val[5] = 0
+        print "Going to write %8.8x" % int(val)
         self.write(self.map['DPCTRL0'], int(val))
 
     def vcdl_pulse(self, channel):
@@ -253,6 +256,15 @@ class GLITC:
             self.write(self.map['DPCTRL1'], int(val))
             return value
 
+    def counters(self):
+        val = bf(0)
+        for i in range(6):
+            val[19:16] = i
+            self.write(self.map['DPCOUNTER'], int(val))
+            time.sleep(0.1)
+            v2 = bf(self.read(self.map['DPCOUNTER']))
+            print "Channel %d: %d" % (i, v2[15:0])
+                    
     def rdac(self, ritc, channel, value = None):
         if ritc > 1:
             print "Illegal RITC channel %d" % ritc
