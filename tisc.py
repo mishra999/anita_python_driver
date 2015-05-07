@@ -175,6 +175,7 @@ class GLITC:
             'DPCTRL1'        : 0x000084,
             'DPTRAINING'     : 0x000088,
             'DPCOUNTER'      : 0x00008C,
+            'DPIDELAY'       : 0x000090,
             'RDINPUT'        : 0x000100,
             'RDCTRL'         : 0x000104,
             'settings_dac'   : 0x000140,
@@ -202,7 +203,6 @@ class GLITC:
         print "                          : MMCMs are %sin reset" % ("" if ctrl[2] else "not ")
         ctrl = bf(self.read(self.map['DPCTRL0']))
         print "Datapath status (%8.8x): FIFO is %senabled" % (int(ctrl)&0xFFFFFFFF, "" if ctrl[1] else "not ")
-        print "                          : FIFO is %senabled" % ("" if ctrl[1] else "not ")
         print "                          : DELAYCTRL is %sready" % ("" if ctrl[4] else "not ")
         print "                          : Datapath inputs are %senabled" % ("not " if ctrl[5] else "")
         ctrl = bf(self.read(self.map['DPCTRL1']))
@@ -216,6 +216,8 @@ class GLITC:
         print "                          : R1 VCDL is %srunning" % ("" if ctrl[31] else "not ")
         ctrl = bf(self.read(self.map['DPTRAINING']))
         print "Training status (%8.8x): Training is %s" % (int(ctrl)&0xFFFFFFFF, "off" if ctrl[31] else "on")
+        print "                          : Training is in %s view" % ("sample" if ctrl[29] else "signal")
+        print "                          : Training latch is %senabled" % ("" if ctrl[28] else "not ")
 
     def datapath_input_ctrl(self, enable):
         val = bf(self.read(self.map['DPCTRL0']))
@@ -224,6 +226,34 @@ class GLITC:
         else:
             val[5] = 0
         print "Going to write %8.8x" % int(val)
+        self.write(self.map['DPCTRL0'], int(val))
+
+    def datapath_initialize(self):
+        self.datapath_input_ctrl(1)
+        # Do something here about checking polarity
+        # of REFCLK. Turn off VCDL first, then
+        # check polarity, invert if needed, and restart.
+        self.vcdl(0, 1)
+        self.vcdl(1, 1)
+        # Maybe do something here about autotuning?
+        self.fifo_ctrl(0)
+        self.serdes_reset()
+        self.fifo_reset()
+        self.fifo_ctrl(1)
+        
+    def serdes_reset(self):
+        val = bf(self.read(self.map['DPCTRL0']))
+        val[2] = 1
+        self.write(self.map['DPCTRL0'], int(val))
+    
+    def fifo_reset(self):
+        val = bf(self.read(self.map['DPCTRL0']))
+        val[0] = 1
+        self.write(self.map['DPCTRL0'], int(val))
+        
+    def fifo_ctrl(self, en):
+        val = bf(self.read(self.map['DPCTRL0']))
+        val[1] = en
         self.write(self.map['DPCTRL0'], int(val))
 
     def vcdl_pulse(self, channel):
@@ -264,7 +294,107 @@ class GLITC:
             time.sleep(0.1)
             v2 = bf(self.read(self.map['DPCOUNTER']))
             print "Channel %d: %d" % (i, v2[15:0])
-                    
+
+    def train_latch_ctrl(self, en):
+        val = bf(self.read(self.map['DPTRAINING']))
+        val[28] = en
+        self.write(self.map['DPTRAINING'], int(val))
+            
+    def training_ctrl(self, en):
+        val = bf(self.read(self.map['DPTRAINING']))
+        if en == 0:
+            val[31] = 1
+        else:
+            val[31] = 0
+        self.write(self.map['DPTRAINING'], int(val))
+        
+    def train_read(self, channel, bit_or_sample):
+        val = bf(self.read(self.map['DPTRAINING']))
+        smp = bf(bit_or_sample)
+        val[19:16] = smp[3:0]
+        val[23] = smp[4]
+        val[22:20] = channel
+        self.write(self.map['DPTRAINING'], int(val))
+        v2 = bf(self.read(self.map['DPTRAINING']))
+        return v2[7:0]
+
+    # I should believe in exceptions, really I should.
+    def eye_autotune(self, channel, bit, verbose=1):
+        eyevars = self.eye_scan(channel, bit, 0)
+        if eyevars[0] == 0:
+            print "eye_autotune error: eye start not found (%2.2x %2.2x %2.2x)" % eyevars
+            return -1
+        elif eyevars[2] != 0x2B and eyevars[2] != 0x95 and eyevars[2] != 0xCA and eyevars[2] != 0x65:
+            print "eye_autotune error: unknown value in eye (%2.2x %2.2x %2.2x)" % eyevars
+            return -1
+        eyecenter = (eyevars[1] + eyevars[0])/2
+        self.delay(channel, bit, int(eyecenter))
+        bitslip_count = 0
+        if eyevars[2] == 0x2B:
+            bitslip_count = 2
+        elif eyevars[2] == 0x95:
+            bitslip_count = 1
+        elif eyevars[2] == 0x65:
+            bitslip_count = 3
+        if verbose == 1:
+            print "eye_autotune: setting to delay %d" % eyecenter
+            print "eye_autotune: bitslipping %d time%s" % ( bitslip_count, ("" if bitslip_count == 1 else "s"))
+        for i in xrange(bitslip_count):
+            self.bitslip(channel, bit)
+        return bitslip_count
+    
+    def eye_scan(self, channel, bit, verbose=1):
+        val = bf(self.read(self.map['DPTRAINING']))
+        val[22:20] = channel
+        val[19:16] = bit
+        val[28] = 1
+        val[29] = 0
+        self.write(self.map['DPTRAINING'], int(val))
+        old_train = 0
+        stable_count = 0
+        eye_start = 0
+        eye_stop = 0
+        found_eye_start = 0
+        looking_for_stop = 0
+        train_in_eye = 0
+        for i in xrange(32):
+            self.delay(channel, bit, i)
+            new_train = self.train_read(channel, bit)
+            if i==0:
+                old_train = new_train
+            else:
+                if new_train == old_train:
+                    stable_count = stable_count + 1
+                    if stable_count > 9:
+                        if found_eye_start == 0:
+                            eye_start = i-stable_count
+                            found_eye_start = 1
+                            train_in_eye = new_train
+                else:
+                    stable_count = 0
+                    if found_eye_start == 1:
+                        eye_stop = i
+                        break
+                old_train = new_train
+        if verbose == 1:
+            print "Ch%2.2d Bit %2.2d Eye scan: (%2.2d - %2.2d) [%2.2X]" % (channel, bit, eye_start, eye_stop, train_in_eye)
+        return (eye_start, eye_stop, train_in_eye)
+    
+    def delay(self, channel, bit, value):
+        val = bf(0)
+        val[7:0] = value
+        val[19:16] = bit
+        val[22:20] = channel
+        val[31] = 1
+        self.write(self.map['DPIDELAY'], int(val))
+    
+    def bitslip(self, channel, bit):
+        val = bf(self.read(self.map['DPTRAINING']))
+        val[22:20] = channel
+        val[19:16] = bit
+        val[30] = 1
+        self.write(self.map['DPTRAINING'], int(val))
+        
     def rdac(self, ritc, channel, value = None):
         if ritc > 1:
             print "Illegal RITC channel %d" % ritc
