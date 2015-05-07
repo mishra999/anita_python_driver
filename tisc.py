@@ -308,9 +308,11 @@ class GLITC:
             val[31] = 0
         self.write(self.map['DPTRAINING'], int(val))
         
-    def train_read(self, channel, bit_or_sample):
+    def train_read(self, channel, bit_or_sample, sample_view=0):
         val = bf(self.read(self.map['DPTRAINING']))
         smp = bf(bit_or_sample)
+        val[28] = 1
+        val[29] = sample_view
         val[19:16] = smp[3:0]
         val[23] = smp[4]
         val[22:20] = channel
