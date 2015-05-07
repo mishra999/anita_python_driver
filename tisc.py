@@ -320,6 +320,11 @@ class GLITC:
         v2 = bf(self.read(self.map['DPTRAINING']))
         return v2[7:0]
 
+    def eye_autotune_all(self):
+        for i in (0,1,2,4,5,6):
+            for j in xrange(12):
+                self.eye_autotune(i,j)
+    
     # I should believe in exceptions, really I should.
     def eye_autotune(self, channel, bit, verbose=1):
         eyevars = self.eye_scan(channel, bit, 0)
