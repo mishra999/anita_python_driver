@@ -444,6 +444,9 @@ class GLITC:
             return self.read(self.map['settings_dac'] + channel*4)
         else:
             value = value & 0xFFF
+            if value > 2000:
+                print "DAC value is too high (%d)!" % value
+                return None
             print "Writing %8.8x to DAC %d" % ( value, channel)
             self.write(self.map['settings_dac'] + channel*4, value)
             return value
