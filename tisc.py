@@ -327,7 +327,7 @@ class GLITC:
     
     # I should believe in exceptions, really I should.
     def eye_autotune(self, channel, bit, verbose=1):
-        eyevars = self.eye_scan(channel, bit, 0)
+        eyevars = self.eye_scan(channel, bit, verbose)
         if eyevars[0] == 0:
             print "eye_autotune error: eye start not found (%2.2x %2.2x %2.2x)" % eyevars
             return -1
