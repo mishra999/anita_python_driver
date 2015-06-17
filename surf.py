@@ -234,16 +234,13 @@ class SPI: #SPI = serial peripheral interface
         res = self.command(device, self.cmd['READ'], 0, length, data_in)
         return res        
         
-class SURF(ocpci.D	evice):
+class SURF(ocpci.Device):
     map = { 'ident'      : 0x000000,
             'ver'        : 0x000004,
             'clock'      : 0x000008,
             'spi_cs'     : 0x00000C,
             'spi_base'   : 0x000010,
-            'GA'         : 0x100000,
-            'GB'         : 0x140000,
-            'GC'         : 0x180000,
-            'GD'         : 0x1C0000 }
+			}
 
     def __init__(self, path="/sys/class/uio/uio0"):
         ocpci.Device.__init__(self, path, 2*1024*1024)
