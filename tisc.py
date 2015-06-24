@@ -182,7 +182,11 @@ class GLITC:
             'settings_atten' : 0x000160,
             'settings_sc'    : 0x000178,
             'settings_pb'    : 0x00017C,
-            'phasescan_pb'   : 0x000058}
+            'phasescan_pb'   : 0x000058,
+            'GICTRL0'        : 0x000180,
+            'GICTRL1'        : 0x000184,
+            'GITRAIN'        : 0x000188,
+            'GIDELAY'        : 0x00018C}
             
     def __init__(self, dev, base):
         self.dev = dev
