@@ -2,12 +2,13 @@ import ocpci
 import struct
 import sys
 import time
-
+#import surf
 #
 # Bitfield manipulation. Note that ordering
 # can be Python (smallest first) or Verilog
 # (largest first) for easy compatibility
 #
+
 
 class bf(object):
     def __init__(self, value=0):
@@ -241,11 +242,11 @@ class SURF(ocpci.Device):
 			'SURF_IntMask' 		: 0x0000C, 
 			'SURF_PPSSel' 		: 0x00010, 
 			'SURF_Reset' 		: 0x00014, 
-			'SURF_LED' 			: 0x00018, 
+			'SURF_LED' 		: 0x00018, 
 			'SURF_ClkSel' 		: 0x0001C,  ##this is a clock
 			'SURF_PllCtrl' 		: 0x00020,  ##this is a clock, PLL = phase locked loop 
-            'spi_cs'     		: 0x00024,  ##this is the spiss variable in the firmware doc 
-            'spi_base'   		: 0x00030,
+            		'spi_cs'     		: 0x00024,  ##this is the spiss variable in the firmware doc 
+            		'spi_base'   		: 0x00030,
 			}
 
     def __init__(self, path="/sys/class/uio/uio0"):
@@ -265,21 +266,19 @@ class SURF(ocpci.Device):
         self.write(self.map['spi_cs'], int(val))
 
     def status(self):
-        ##clock = bf(self.read(self.map['clock']))
-		clocksel = bf(self.read(self.map['SURF_ClkSel']))
+       		clocksel = bf(self.read(self.map['SURF_ClkSel']))
 		pullctrl = bf(self.read(self.map['SURF_PllCtrl']))
 		int_status = bf(self.read(self.map['SURF_IntStatus']))
 		int_mask = bf(self.read(self.map['SURF_IntMask']))
 		led = bf(self.read(self.map['SURF_LED']))
-        #print "Clock Status: Local Clock is %s (EN_LOCAL_CLK = %d)" % ("enabled" if clock[1] else "not enabled", clock[1])
-        #print "            :   SYS Clock is %s (SYSCLK_SEL = %d)" % ("Local Clock" if clock[0] else "TURF Clock", clock[0])
-		print "Clock Status: LAB4 Clock is %s (SURF_ClkSel[1] = %d)" % ("enabled" if clocksel[1] else "not enabled", clocksel[1])
+       		print "Clock Status: LAB4 Clock is %s (SURF_ClkSel[1] = %d)" % ("enabled" if clocksel[1] else "not enabled", clocksel[1])
 		print "            : LAB4 Driving Clock is %s (SURF_ClkSel[0] = %d)" % ("TURF Clock" if clocksel[0] else "FPGA Clock", clocksel[0])
         	print "            : FPGA Driving Clock is %s (SURF_ClkSel[2] = %d)" % ("TURF Clock" if clocksel[2] else "Local Clock", clocksel[2])
-		print " Int Status : %8.8x" % (int_status & 0xFFFFFFFF)
-		print " Int Mask   : %8.8x" % (int_mask & 0xFFFFFFFF)
-		print " LED        :Internal value %8.8x, Key value %8.8x" % (led[11:0], led[27:16])
-		print " Full LED   : %8.8x" % (led & 0xFFFFFFFF)
+		print " Int Status : %8.8x" % (self.read(self.map['SURF_IntStatus']) & 0xFFFFFFFF)
+		print " LED        : Internal value %3.3x, Key value %3.3x" % (led[11:0], led[27:16])
+		print " Full LED   : %8.8x" % (self.read(self.map['SURF_LED']) & 0xFFFFFFFF)
+		print " Int Mask   : %8.8x" % (self.read(self.map['SURF_IntMask']) & 0xFFFFFFFF)
+		
 		
 		
 		
