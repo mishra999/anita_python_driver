@@ -276,9 +276,10 @@ class SURF(ocpci.Device):
 		print "Clock Status: LAB4 Clock is %s (SURF_ClkSel[1] = %d)" % ("enabled" if clocksel[1] else "not enabled", clocksel[1])
 		print "            : LAB4 Driving Clock is %s (SURF_ClkSel[0] = %d)" % ("TURF Clock" if clocksel[0] else "FPGA Clock", clocksel[0])
         	print "            : FPGA Driving Clock is %s (SURF_ClkSel[2] = %d)" % ("TURF Clock" if clocksel[2] else "Local Clock", clocksel[2])
-		print " Int Status : %x" % (int(int_status))
-		print " Int Mask   : %x" % (int(int_mask))
-		print " LED        : %x" % (int(led))
+		print " Int Status : %8.8x" % (int_status & 0xFFFFFFFF)
+		print " Int Mask   : %8.8x" % (int_mask & 0xFFFFFFFF)
+		print " LED        :Internal value %8.8x, Key value %8.8x" % (led[11:0], led[27:16])
+		print " Full LED   : %8.8x" % (led & 0xFFFFFFFF)
 		
 		
 		
