@@ -169,10 +169,10 @@ class PicoBlaze: #no changes from the copy in the tisc.py class
 
 ##Shouldn't need to rework the SPI class
 class SPI: #SPI = serial peripheral interface
-    map = { 'SPCR'       : 0x000000,
-            'SPSR'       : 0x000004,
-            'SPDR'       : 0x000008,
-            'SPER'       : 0x00000C }
+    map = { 'SPI_CtrlReg'    : 0x00030,
+            'SPI_StatusReg'  : 0x00034,
+            'SPI_WR'         : 0x00038,
+            'SPI_ExtCtrlReg' : 0x0003C }
     
     cmd = { 'RES'        : 0xAB ,
             'RDID'       : 0x9F ,
@@ -196,26 +196,26 @@ class SPI: #SPI = serial peripheral interface
     def __init__(self, dev, base):
         self.dev = dev
         self.base = base
-        val = bf(self.dev.read(self.base + self.map['SPCR']))
+        val = bf(self.dev.read(self.base + self.map['SPI_CtrlReg']))
         val[6] = 1;
         val[3] = 0;
         val[2] = 0;
-        self.dev.write(self.base + self.map['SPCR'], int(val))
+        self.dev.write(self.base + self.map['SPI_CtrlReg'], int(val))
 
     def command(self, device, command, dummy_bytes, num_read_bytes, data_in = [] ):
         self.dev.spi_cs(device, 1)
-        self.dev.write(self.base + self.map['SPDR'], command)
+        self.dev.write(self.base + self.map['SPI_WR'], command)
         for dat in data_in:
-            self.dev.write(self.base + self.map['SPDR'], dat)
+            self.dev.write(self.base + self.map['SPI_WR'], dat)
         for i in range(dummy_bytes):
-            self.dev.write(self.base + self.map['SPDR'], 0x00)
+            self.dev.write(self.base + self.map['SPI_WR'], 0x00)
         # Empty the read FIFO.
-        while not (self.dev.read(self.base + self.map['SPSR']) & self.bits['RFEMPTY']):
-            self.dev.read(self.base + self.map['SPDR'])
+        while not (self.dev.read(self.base + self.map['SPI_StatusReg']) & self.bits['RFEMPTY']):
+            self.dev.read(self.base + self.map['SPI_WR'])
         rdata = []
         for i in range(num_read_bytes):
-            self.dev.write(self.base + self.map['SPDR'], 0x00)
-            rdata.append(self.dev.read(self.base + self.map['SPDR']))
+            self.dev.write(self.base + self.map['SPI_WR'], 0x00)
+            rdata.append(self.dev.read(self.base + self.map['SPI_WR']))
         self.dev.spi_cs(device, 0)    
         return rdata
     
@@ -235,11 +235,17 @@ class SPI: #SPI = serial peripheral interface
         return res        
         
 class SURF(ocpci.Device):
-    map = { 'ident'      : 0x000000,
-            'ver'        : 0x000004,
-            'clock'      : 0x000008,
-            'spi_cs'     : 0x000024,
-            'spi_base'   : 0x000030,
+    map = { 'SURF_Dev'      	: 0x00000,
+            'SURF_Ver'      	: 0x00004,
+			'SURF_IntStatus' 	: 0x00008, 
+			'SURF_IntMask' 		: 0x0000C, 
+			'SURF_PPSSel' 		: 0x00010, 
+			'SURF_Reset' 		: 0x00014, 
+			'SURF_LED' 			: 0x00018, 
+			'SURF_ClkSel' 		: 0x0001C,  ##this is a clock
+			'SURF_PllCtrl' 		: 0x00020,  ##this is a clock, PLL = phase locked loop 
+            'spi_cs'     		: 0x00024,  ##this is the spiss variable in the firmware doc 
+            'spi_base'   		: 0x00030,
 			}
 
     def __init__(self, path="/sys/class/uio/uio0"):
@@ -259,13 +265,25 @@ class SURF(ocpci.Device):
         self.write(self.map['spi_cs'], int(val))
 
     def status(self):
-        clock = bf(self.read(self.map['clock']))
-        print "Clock Status: Local Clock is %s (EN_LOCAL_CLK = %d)" % ("enabled" if clock[1] else "not enabled", clock[1])
-        print "            :   SYS Clock is %s (SYSCLK_SEL = %d)" % ("Local Clock" if clock[0] else "TURF Clock", clock[0])
-
-        
+        ##clock = bf(self.read(self.map['clock']))
+		clocksel = bf(self.read(self.map['SURF_ClkSel']))
+		pullctrl = bf(self.read(self.map['SURF_PllCtrl']))
+		int_status = bf(self.read(self.map['SURF_IntStatus']))
+		int_mask = bf(self.read(self.map['SURF_IntMask']))
+		led = bf(self.read(self.map['SURF_LED']))
+        #print "Clock Status: Local Clock is %s (EN_LOCAL_CLK = %d)" % ("enabled" if clock[1] else "not enabled", clock[1])
+        #print "            :   SYS Clock is %s (SYSCLK_SEL = %d)" % ("Local Clock" if clock[0] else "TURF Clock", clock[0])
+		print "Clock Status: LAB4 Clock is %s (SURF_ClkSel[1] = %d)" % ("enabled" if clocksel[1] else "not enabled", clocksel[1])
+		print "            : LAB4 Driving Clock is %s (SURF_ClkSel[0] = %d)" % ("TURF Clock" if clocksel[0] else "FPGA Clock", clocksel[0])
+        print "            : FPGA Driving Clock is %s (SURF_ClkSel[2] = %d)" % ("TURF Clock" if clocksel[2] else "Local Clock", clocksel[2])
+		print " Int Status : %x" % (int(int_status))
+		print " Int Mask   : %x" % (int(int_mask))
+		print " LED        : %x" % (int(led))
+		
+		
+		
     def identify(self):
-        ident = bf(self.read(self.map['ident']))
-        ver = bf(self.read(self.map['ver']))
+        ident = bf(self.read(self.map['SURF_Dev']))
+        ver = bf(self.read(self.map['SURF_Ver']))
         print "Identification Register: %x (%c%c%c%c)" % (int(ident),ident[31:24],ident[23:16],ident[15:8],ident[7:0])
         print "Version Register: %d.%d.%d compiled %d/%d" % (ver[15:12], ver[11:8], ver[7:0], ver[28:24], ver[23:16])
