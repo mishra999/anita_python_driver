@@ -264,18 +264,43 @@ class SURF(ocpci.Device):
         val = bf(self.read(self.map['spi_cs']))
         val[device] = state
         self.write(self.map['spi_cs'], int(val))
+		
+		
+	def led(self):
+		self.led = bf(self.read(self.map['SURF_LED']))
+		if 1 is in self.led[11:0]:
+			led_off("off")  #write some function for turning led off 
+		if 0 is in self.led[11:0]:
+		    led_on("on")   # write some function for turning led on 
+		if f is in self.led[27:16]:
+			led_release("release")  # write some function for releasing led whatever that means 
+		
+		
+	def led_off(self, "off"):
+		for i in range len(self.led[11:0]):
+			self.led[i] = 0 
+			
+	def led_on(self, "on"):
+		for i in range len(self.led[11:0]):
+			self.led[i] = 1 
+			
+	def led_release(self, "release"):
+		for i in range len(self.led[27:16]):
+			self.led[i] = 0 
+			
+		
 
     def status(self):
        		clocksel = bf(self.read(self.map['SURF_ClkSel']))
 		pullctrl = bf(self.read(self.map['SURF_PllCtrl']))
 		int_status = bf(self.read(self.map['SURF_IntStatus']))
 		int_mask = bf(self.read(self.map['SURF_IntMask']))
-		led = bf(self.read(self.map['SURF_LED']))
+		#led = bf(self.read(self.map['SURF_LED']))
        		print "Clock Status: LAB4 Clock is %s (SURF_ClkSel[1] = %d)" % ("enabled" if clocksel[1] else "not enabled", clocksel[1])
 		print "            : LAB4 Driving Clock is %s (SURF_ClkSel[0] = %d)" % ("TURF Clock" if clocksel[0] else "FPGA Clock", clocksel[0])
         	print "            : FPGA Driving Clock is %s (SURF_ClkSel[2] = %d)" % ("TURF Clock" if clocksel[2] else "Local Clock", clocksel[2])
 		print " Int Status : %8.8x" % (self.read(self.map['SURF_IntStatus']) & 0xFFFFFFFF)
-		print " LED        : Internal value %3.3x, Key value %3.3x" % (led[11:0], led[27:16])
+		print " LED        : Internal value %3.3x, Key value %3.3x" % (self.led[11:0], self.led[27:16])
 		print " Full LED   : %8.8x" % (self.read(self.map['SURF_LED']) & 0xFFFFFFFF)
 		print " Int Mask   : %8.8x" % (self.read(self.map['SURF_IntMask']) & 0xFFFFFFFF)
 		
