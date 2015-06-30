@@ -266,31 +266,44 @@ class SURF(ocpci.Device):
         self.write(self.map['spi_cs'], int(val))
 		
 		
-    def led(self, *arg, **kwargs):
-	    self.led = bf(self.read(self.map['SURF_LED']))
+    def led(self, arg):
+	    print "I'm inside the LED function"
+            print "  "
+            self.led = bf(self.read(self.map['SURF_LED']))
 	    if arg == "off":
-		    led_off()                        # call the function for turning LED's off 
+		   self.led_off()                        # call the function for turning LED's off 
 	    if arg == "on":
-		    led_on()                         # call the function for turning LED's on 
+		    self.led_on()                         # call the function for turning LED's on 
 	    if arg == "release":
-		    led_release()                    # call function for releasing LED (we stop controlling it)
+		    self.led_release()                    # call function for releasing LED (we stop controlling it)
 		
 
     def led_off(self):
-	    for i in range len(self.led[27:16]):
-		   self.led[i] = 1 
-	    for j in range len(self.led[11:0]):
-		   self.led[j] = 0 
-		
+	    #for i in range len(self.led[27:16]):
+	     #     self.led[i] = 1 
+	    #for j in range len(self.led[11:0]):
+		#   self.led[j] = 0
+            for i in range (16,28):
+                  self.led[i] = 1
+            for j in range (0,12): 
+                  self.led[j] = 0 
+
+            for i in range (16,28): 
+                   print "off command: value of led %d= %d" % (i, self.led[i]) 
+            for k in range (0,12):
+                   print "off command: value of led %d = %d" % (k,self.led[k])		
+
     def led_on(self):
-	    for i in range len(self.led[27:16]):
-		    self.led[i] = 1
-	    for j in range len(self.led[11:0]):
-		    self.lef[j] = 1 
+	   # for i in range len(self.led[27:16]):
+		  #  self.led[i] = 1
+	    #for j in range len(self.led[11:0]):
+		   # self.lef[j] = 1 
+        print "all is good on led on"
 
     def led_release(self):
-	    for i in range len(self.led[27:16]):
-		    self.led[i] = 0 
+	   # for i in range len(self.led[27:16]):
+		  #  self.led[i] = 0 
+        print "all is good on led release" 
 			
 		
 
@@ -299,12 +312,12 @@ class SURF(ocpci.Device):
 		pullctrl = bf(self.read(self.map['SURF_PllCtrl']))
 		int_status = bf(self.read(self.map['SURF_IntStatus']))
 		int_mask = bf(self.read(self.map['SURF_IntMask']))
-		#led = bf(self.read(self.map['SURF_LED']))
+		led = bf(self.read(self.map['SURF_LED']))
        		print "Clock Status: LAB4 Clock is %s (SURF_ClkSel[1] = %d)" % ("enabled" if clocksel[1] else "not enabled", clocksel[1])
 		print "            : LAB4 Driving Clock is %s (SURF_ClkSel[0] = %d)" % ("TURF Clock" if clocksel[0] else "FPGA Clock", clocksel[0])
         	print "            : FPGA Driving Clock is %s (SURF_ClkSel[2] = %d)" % ("TURF Clock" if clocksel[2] else "Local Clock", clocksel[2])
 		print " Int Status : %8.8x" % (self.read(self.map['SURF_IntStatus']) & 0xFFFFFFFF)
-		print " LED        : Internal value %3.3x, Key value %3.3x" % (self.led[11:0], self.led[27:16])
+		print " LED        : Internal value %3.3x, Key value %3.3x" % (led[11:0], led[27:16])
 		print " Full LED   : %8.8x" % (self.read(self.map['SURF_LED']) & 0xFFFFFFFF)
 		print " Int Mask   : %8.8x" % (self.read(self.map['SURF_IntMask']) & 0xFFFFFFFF)
 		
