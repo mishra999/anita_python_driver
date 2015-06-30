@@ -266,31 +266,31 @@ class SURF(ocpci.Device):
         self.write(self.map['spi_cs'], int(val))
 		
 		
-def led(self, *arg, **kwargs):
-	self.led = bf(self.read(self.map['SURF_LED']))
-	if arg == "off":
-		led_off()                        # call the function for turning LED's off 
-	if arg == "on":
-		led_on()                         # call the function for turning LED's on 
-	if arg == "release":
-		led_release()                    # call function for releasing LED (we stop controlling it)
+    def led(self, *arg, **kwargs):
+	    self.led = bf(self.read(self.map['SURF_LED']))
+	    if arg == "off":
+		    led_off()                        # call the function for turning LED's off 
+	    if arg == "on":
+		    led_on()                         # call the function for turning LED's on 
+	    if arg == "release":
+		    led_release()                    # call function for releasing LED (we stop controlling it)
 		
 
-def led_off(self):
-	for i in range len(self.led[27:16]):
-		self.led[i] = 1 
-	for j in range len(self.led[11:0]):
-		self.led[j] = 0 
+    def led_off(self):
+	    for i in range len(self.led[27:16]):
+		   self.led[i] = 1 
+	    for j in range len(self.led[11:0]):
+		   self.led[j] = 0 
 		
-def led_on(self):
-	for i in range len(self.led[27:16]):
-		self.led[i] = 1
-	for j in range len(self.led[11:0]):
-		self.lef[j] = 1 
+    def led_on(self):
+	    for i in range len(self.led[27:16]):
+		    self.led[i] = 1
+	    for j in range len(self.led[11:0]):
+		    self.lef[j] = 1 
 
-def led_release(self):
-	for i in range len(self.led[27:16]):
-		self.led[i] = 0 
+    def led_release(self):
+	    for i in range len(self.led[27:16]):
+		    self.led[i] = 0 
 			
 		
 
