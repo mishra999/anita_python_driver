@@ -294,15 +294,25 @@ class SURF(ocpci.Device):
                    print "off command: value of led %d = %d" % (k,self.led[k])		
 
     def led_on(self):
-	   # for i in range len(self.led[27:16]):
-		  #  self.led[i] = 1
-	    #for j in range len(self.led[11:0]):
-		   # self.lef[j] = 1 
+            for i in range (16,28):
+                  self.led[i] = 1 #unlock those LEDs for writing
+            for j in range (0,12): 
+                  self.led[j] = 1 #turn the LEDs on
+
+            for i in range (16,28): 
+                   print "off command: value of led %d= %d" % (i, self.led[i]) 
+            for k in range (0,12):
+                   print "off command: value of led %d = %d" % (k,self.led[k])
         print "all is good on led on"
 
     def led_release(self):
-	   # for i in range len(self.led[27:16]):
-		  #  self.led[i] = 0 
+            for i in range (16,28):
+                  self.led[i] = f #lock these LEDs
+
+            for i in range (16,28): 
+                   print "off command: value of led %d= %d" % (i, self.led[i]) 
+            for k in range (0,12):
+                   print "off command: value of led %d = %d" % (k,self.led[k])
         print "all is good on led release" 
 			
 		
