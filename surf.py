@@ -272,10 +272,12 @@ class SURF(ocpci.Device):
             self.led = bf(self.read(self.map['SURF_LED']))
 	    if arg == "off":
 		   self.led_off()                        # call the function for turning LED's off 
-	    if arg == "on":
+	    elif arg == "on":
 		    self.led_on()                         # call the function for turning LED's on 
-	    if arg == "release":
+	    elif arg == "release":
 		    self.led_release()                    # call function for releasing LED (we stop controlling it)
+	    else:
+                    "Invalid argument!!" 
 		
 
     def led_off(self):
@@ -303,17 +305,16 @@ class SURF(ocpci.Device):
                    print "off command: value of led %d= %d" % (i, self.led[i]) 
             for k in range (0,12):
                    print "off command: value of led %d = %d" % (k,self.led[k])
-        print "all is good on led on"
+            print "all is good on led on"
 
     def led_release(self):
+            print "Got inside the release function" 
             for i in range (16,28):
-                  self.led[i] = f #lock these LEDs
+                  self.led[i] = 0    #lock these LEDs
 
             for i in range (16,28): 
                    print "off command: value of led %d= %d" % (i, self.led[i]) 
-            for k in range (0,12):
-                   print "off command: value of led %d = %d" % (k,self.led[k])
-        print "all is good on led release" 
+            print "all is good on led release" 
 			
 		
 
