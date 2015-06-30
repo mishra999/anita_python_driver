@@ -269,21 +269,21 @@ class SURF(ocpci.Device):
 	def led(self):
 		self.led = bf(self.read(self.map['SURF_LED']))
 		if 1 is in self.led[11:0]:
-			led_off("off")  #write some function for turning led off 
+			led_off("off")                      # call the function for turning LED's off 
 		if 0 is in self.led[11:0]:
-		    led_on("on")   # write some function for turning led on 
+			led_on("on")                        # call the function for turning LED's on 
 		if f is in self.led[27:16]:
-			led_release("release")  # write some function for releasing led whatever that means 
-		
-		
+			led_release("release")              # call function for releasing LED whatever that means 
+			
+
 	def led_off(self, "off"):
 		for i in range len(self.led[11:0]):
 			self.led[i] = 0 
 			
 	def led_on(self, "on"):
 		for i in range len(self.led[11:0]):
-			self.led[i] = 1 
-			
+			self.led[i] = 1
+
 	def led_release(self, "release"):
 		for i in range len(self.led[27:16]):
 			self.led[i] = 0 
