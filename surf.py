@@ -277,7 +277,7 @@ class SURF(ocpci.Device):
 	    elif arg == "release":
 		    self.led_release()                    # call function for releasing LED (we stop controlling it)
 	    else:
-                    "Invalid argument!!" 
+            print "Invalid argument!!" 
 		
 
     def led_off(self):
