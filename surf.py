@@ -265,20 +265,43 @@ class SURF(ocpci.Device):
         val[device] = state
         self.write(self.map['spi_cs'], int(val))
 		
-		
+				
     def led(self, arg):
+		self.led_unusedbits = "0000"                 
+		self.led_VALUE_list = [0]*12  #array so that we can change values, setting all to zero initially 
+		self.led_KEY_list = [0]*12    #array so that we can change values, setting all to zero initially
 	    print "I'm inside the LED function"
             print "  "
             #self.led = bf(self.read(self.map['SURF_LED']))
-	    if arg == "off":
-		   self.led_off()                        # call the function for turning LED's off 
-	    elif arg == "on":
-		    self.led_on()                         # call the function for turning LED's on 
+	    if arg == "all off":
+		   self.led_off()                             # call the function for turning LED's off 
+	    elif arg == "all on":
+		    self.led_on()                             # call the function for turning LED's on 
 	    elif arg == "release":
-		    self.led_release()                    # call function for releasing LED (we stop controlling it)
+		    self.led_release()                        # call function for releasing LED (we stop controlling it)
+		elif arg == "one off":
+			led_num = int(input("Enter number of LED you want to turn off"))
+			value = 0 
+			self.led_one(led_num,value)
+		elif arg == "one on":
+			led_num = int(input("Enter number of LED you want to turn on"))
+			value = 1
+			self.led_one(led_num,value)
 	    else:
-                print "Invalid argument!!" 
-		
+                print "Invalid argument! Your options are "all off", "all on", "release", "one off", "one on"" 
+	
+
+	def list_to_string(self,list):
+		return "".join(map(str,list))
+				
+	def led_one(self,led_num,value):
+		self.led_VALUE_list[led_num] = value
+		led_VALUE_string = list_to_string(self.led_VALUE_list)
+		led_KEY_string = list_to_string(self.led_KEY_list)
+		led_full_string = self.led_unusedbits + led_KEY_string + self.led_unusedbits + led_VALUE_string 
+		print led_full_string
+		self.write(self.map['SURF_LED'],int(led_full_string,base=2))
+			
 
     def led_off(self):
 	    #for i in range len(self.led[27:16]):
