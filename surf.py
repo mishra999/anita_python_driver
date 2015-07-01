@@ -268,9 +268,9 @@ class SURF(ocpci.Device):
 				
     def led(self, arg):
 	    self.led_unusedbits = "0000"                 
-	    self.led_VALUE_list = [0]*12  #array so that we can change values, setting all to zero initially 
+	    #self.led_VALUE_list = [0]*12  #array so that we can change values, setting all to zero initially 
 	    self.led_KEY_list = [1]*12    #array so that we can change values, setting all to one initially
-	    print "I'm inside the LED function"
+	    print "LED function works!"
             print "  "
             #self.led = bf(self.read(self.map['SURF_LED']))
 	    if arg == "all off":
@@ -293,13 +293,18 @@ class SURF(ocpci.Device):
 
     def list_to_string(self,list):
         return "".join(map(str,list))
+
 				
     def led_one(self,led_num,value):
-        self.led_VALUE_list[led_num] = value
-        led_VALUE_string = self.list_to_string(self.led_VALUE_list)
+	if value == 0:
+	    led_VALUE_list = [1]*12
+	if value == 1:
+	    led_VALUE_list = [0]*12
+        led_VALUE_list[led_num] = value
+        led_VALUE_string = self.list_to_string(led_VALUE_list)
         led_KEY_string = self.list_to_string(self.led_KEY_list)
         led_full_string = self.led_unusedbits + led_KEY_string + self.led_unusedbits + led_VALUE_string 
-        print led_full_string
+        print "current LED values in binary: " + led_full_string
         self.write(self.map['SURF_LED'],int(led_full_string,base=2))
 			
 
