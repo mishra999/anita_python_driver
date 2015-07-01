@@ -269,7 +269,7 @@ class SURF(ocpci.Device):
     def led(self, arg):
 	    print "I'm inside the LED function"
             print "  "
-            self.led = bf(self.read(self.map['SURF_LED']))
+            #self.led = bf(self.read(self.map['SURF_LED']))
 	    if arg == "off":
 		   self.led_off()                        # call the function for turning LED's off 
 	    elif arg == "on":
@@ -277,7 +277,7 @@ class SURF(ocpci.Device):
 	    elif arg == "release":
 		    self.led_release()                    # call function for releasing LED (we stop controlling it)
 	    else:
-            print "Invalid argument!!" 
+                print "Invalid argument!!" 
 		
 
     def led_off(self):
@@ -285,35 +285,37 @@ class SURF(ocpci.Device):
 	     #     self.led[i] = 1 
 	    #for j in range len(self.led[11:0]):
 		#   self.led[j] = 0
-            for i in range (16,28):
-                  self.led[i] = 1
-            for j in range (0,12): 
-                  self.led[j] = 0 
+            #for i in range (16,28):
+                 # self.led[i] = 1
+                  self.write(self.map['SURF_LED'],0x0fff0000)
+            #for j in range (0,12): 
+                  #self.led[j] = 0 
 
-            for i in range (16,28): 
-                   print "off command: value of led %d= %d" % (i, self.led[i]) 
-            for k in range (0,12):
-                   print "off command: value of led %d = %d" % (k,self.led[k])		
+            #for i in range (16,28): 
+                  # print "off command: value of led %d= %d" % (i, self.led[i]) 
+           # for k in range (0,12):
+                  # print "off command: value of led %d = %d" % (k,self.led[k])		
 
     def led_on(self):
-            for i in range (16,28):
-                  self.led[i] = 1 #unlock those LEDs for writing
-            for j in range (0,12): 
-                  self.led[j] = 1 #turn the LEDs on
+           # for i in range (16,28):
+                 # self.led[i] = 1 #unlock those LEDs for writing
+            self.write(self.map['SURF_LED'],0x0fff0fff)           
+            #for j in range (0,12): 
+                 # self.led[j] = 1 #turn the LEDs on
 
-            for i in range (16,28): 
-                   print "off command: value of led %d= %d" % (i, self.led[i]) 
-            for k in range (0,12):
-                   print "off command: value of led %d = %d" % (k,self.led[k])
+            #for i in range (16,28): 
+                  # print "off command: value of led %d= %d" % (i, self.led[i]) 
+            #for k in range (0,12):
+                  # print "off command: value of led %d = %d" % (k,self.led[k])
             print "all is good on led on"
 
     def led_release(self):
             print "Got inside the release function" 
-            for i in range (16,28):
-                  self.led[i] = 0    #lock these LEDs
-
-            for i in range (16,28): 
-                   print "off command: value of led %d= %d" % (i, self.led[i]) 
+           # for i in range (16,28):
+                 # self.led[i] = 0    #lock these LEDs
+            self.write(self.map['SURF_LED'],0x00000000)  
+            #for i in range (16,28): 
+                  # print "off command: value of led %d= %d" % (i, self.led[i]) 
             print "all is good on led release" 
 			
 		
