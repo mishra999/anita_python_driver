@@ -274,21 +274,21 @@ class SURF(ocpci.Device):
             print "  "
             #self.led = bf(self.read(self.map['SURF_LED']))
 	    if arg == "all off":
-		   self.led_off()                             # call the function for turning LED's off 
+		self.led_off()                             # call the function for turning LED's off 
 	    elif arg == "all on":
-		    self.led_on()                             # call the function for turning LED's on 
+		self.led_on()                             # call the function for turning LED's on 
 	    elif arg == "release":
-		    self.led_release()                        # call function for releasing LED (we stop controlling it)
+		self.led_release()                        # call function for releasing LED (we stop controlling it)
 	    elif arg == "one off":
-	            led_num = int(input("Enter number of LED you want to turn off"))
-		    value = 0 
-		    self.led_one(led_num,value)
+		off_led_num = int(input("Enter number of LED you want to turn off: "))
+		off_value = 0 
+		self.led_one(off_led_num,off_value)
 	    elif arg == "one on":
-	            led_num = int(input("Enter number of LED you want to turn on"))
-		    value = 1
-	            self.led_one(led_num,value)
+	        on_led_num = int(input("Enter number of LED you want to turn on: "))
+		on_value = 1
+	        self.led_one(on_led_num,on_value)
 	    else:
-                print "Invalid argument! Your options are "all off", "all on", "release", "one off", "one on"." 
+                print "Invalid argument! Your options are all off, all on, release, one off, one on" 
 	
 
     def list_to_string(self,list):
@@ -296,53 +296,25 @@ class SURF(ocpci.Device):
 				
     def led_one(self,led_num,value):
         self.led_VALUE_list[led_num] = value
-        led_VALUE_string = list_to_string(self.led_VALUE_list)
-        led_KEY_string = list_to_string(self.led_KEY_list)
+        led_VALUE_string = self.list_to_string(self.led_VALUE_list)
+        led_KEY_string = self.list_to_string(self.led_KEY_list)
         led_full_string = self.led_unusedbits + led_KEY_string + self.led_unusedbits + led_VALUE_string 
         print led_full_string
         self.write(self.map['SURF_LED'],int(led_full_string,base=2))
 			
 
     def led_off(self):
-	    #for i in range len(self.led[27:16]):
-	     #     self.led[i] = 1 
-	    #for j in range len(self.led[11:0]):
-		#   self.led[j] = 0
-            #for i in range (16,28):
-                 # self.led[i] = 1
-                  self.write(self.map['SURF_LED'],0x0fff0000)
-            #for j in range (0,12): 
-                  #self.led[j] = 0 
-
-            #for i in range (16,28): 
-                  # print "off command: value of led %d= %d" % (i, self.led[i]) 
-           # for k in range (0,12):
-                  # print "off command: value of led %d = %d" % (k,self.led[k])		
+	self.write(self.map['SURF_LED'],0x0fff0000)
+            		
 
     def led_on(self):
-           # for i in range (16,28):
-                 # self.led[i] = 1 #unlock those LEDs for writing
-            self.write(self.map['SURF_LED'],0x0fff0fff)           
-            #for j in range (0,12): 
-                 # self.led[j] = 1 #turn the LEDs on
-
-            #for i in range (16,28): 
-                  # print "off command: value of led %d= %d" % (i, self.led[i]) 
-            #for k in range (0,12):
-                  # print "off command: value of led %d = %d" % (k,self.led[k])
-            print "all is good on led on"
+	self.write(self.map['SURF_LED'],0x0fff0fff)           
+            
 
     def led_release(self):
-            print "Got inside the release function" 
-           # for i in range (16,28):
-                 # self.led[i] = 0    #lock these LEDs
-            self.write(self.map['SURF_LED'],0x00000000)  
-            #for i in range (16,28): 
-                  # print "off command: value of led %d= %d" % (i, self.led[i]) 
-            print "all is good on led release" 
+	self.write(self.map['SURF_LED'],0x00000000)  
+       
 			
-		
-
     def status(self):
        		clocksel = bf(self.read(self.map['SURF_ClkSel']))
 		pullctrl = bf(self.read(self.map['SURF_PllCtrl']))
