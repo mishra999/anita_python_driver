@@ -269,7 +269,7 @@ class SURF(ocpci.Device):
     def led(self, arg):
 		self.led_unusedbits = "0000"                 
 		self.led_VALUE_list = [0]*12  #array so that we can change values, setting all to zero initially 
-		self.led_KEY_list = [0]*12    #array so that we can change values, setting all to zero initially
+		self.led_KEY_list = [1]*12    #array so that we can change values, setting all to one initially
 	    print "I'm inside the LED function"
             print "  "
             #self.led = bf(self.read(self.map['SURF_LED']))
