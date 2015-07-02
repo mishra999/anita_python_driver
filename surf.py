@@ -267,6 +267,10 @@ class SURF(ocpci.Device):
 		
 				
     def led(self, arg):
+	    off_led_num = 14                     # initializing this to something while debugging 
+            on_led_num = 14
+            off_value = 2
+            on_value = 2
 	    self.led_unusedbits = "0000"                 
 	    self.led_KEY_list = [1]*12    #array so that we can change values, setting all to one initially
 	    print "LED function works!"
@@ -295,19 +299,36 @@ class SURF(ocpci.Device):
 				
     def led_one(self,led_num,value):
         led_current = bf(self.read(self.map['SURF_LED']))
-		led_current_binary = "{0:b}".format(led_current[31:0])
-		print led_current_binary #string containing current LED configuration in binary 
-        print "the type of led_current_binary is: %s" % (type(led_current_binary))
+	led_current_binary = "{0:b}".format(led_current[31:0])                             # string containing current LED configuration in binary
+	led_current_binary = "0000" + led_current_binary
+	print "integer value of led_current_binary: " + str(int(led_current_binary,base=2))
+	print led_num
+	print value 
+	print "current LED values in binary: " + led_current_binary                        # this string misses the first four zeros!
+	print len(led_current_binary)
+	print led_current_binary[0]
+	print led_current_binary[15], led_current_binary[16]
+	print led_current_binary[27] 
+        print "the type of led_current_binary is: %s" % (type(led_current_binary))         # check it's a string!
         print " "       
-		led_current_VALUE = led_current_binary[20:31] #take last part of string to get just VALUES
-		led_VALUE_list = list(led_current_VALUE)
-		led_VALUE_list[led_num] = value
-        led_VALUE_string = self.list_to_string(led_VALUE_list)
-        led_KEY_string = self.list_to_string(self.led_KEY_list)
-        led_full_string = self.led_unusedbits + led_KEY_string + self.led_unusedbits + led_VALUE_string 
-        print "current LED values in binary: " + led_full_string
-        self.write(self.map['SURF_LED'],int(led_full_string,base=2))
-			
+	led_current_VALUE = led_current_binary[20:32]                                      # take last part of string to get just VALUES
+	led_VALUE_list = list(led_current_VALUE)                                           # turn string into list so we can easily toggle its values
+        print "The length of the array is %d" % (len(led_VALUE_list))	
+        led_VALUE_list[led_num] = value                                                    # change the LED value that user wants to change 
+        led_VALUE_string = self.list_to_string(led_VALUE_list)                             # turn list of LED values back into string 
+        led_KEY_string = self.list_to_string(self.led_KEY_list)                            # turn list of LED key values to string 
+        led_full_string = self.led_unusedbits + led_KEY_string + self.led_unusedbits + led_VALUE_string    # put the different strings together to get full LED configuration
+        print "updated LED values in binary: " + led_full_string
+        self.write(self.map['SURF_LED'],int(led_full_string,base=2))                       # write in this new configuration to see the change take place 	
+	print "integer value of led_full_string: " + str(int(led_full_string,base=2))
+	
+        
+
+        u= bf(self.read(self.map['SURF_LED']))
+        y= "{0:b}".format(u[31:0])	
+        print "after we change everyting: "+"0000" + y		
+	print led_num
+	print value 
 
     def led_off(self):
 	self.write(self.map['SURF_LED'],0x0fff0000)
