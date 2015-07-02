@@ -300,6 +300,14 @@ class SURF(ocpci.Device):
 	    led_VALUE_list = [1]*12
 	if value == 1:
 	    led_VALUE_list = [0]*12
+        led_current = bf(self.read(self.map['SURF_LED']))
+	#print "led_current type is: %s " % (type(led_current))
+	x = "{0:b}".format(led_current[31:0])
+	print x
+        print "the type of x is: %s" % (type(x))
+        print " " 
+        #led_VALUE_list = led_current[11:0]
+	print led_VALUE_list
         led_VALUE_list[led_num] = value
         led_VALUE_string = self.list_to_string(led_VALUE_list)
         led_KEY_string = self.list_to_string(self.led_KEY_list)
