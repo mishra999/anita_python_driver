@@ -2,7 +2,8 @@ import ocpci
 import struct
 import sys
 import time
-#import surf
+import spi
+
 #
 # Bitfield manipulation. Note that ordering
 # can be Python (smallest first) or Verilog
@@ -168,72 +169,6 @@ class PicoBlaze: #no changes from the copy in the tisc.py class
             elif instr[17:12] == 0x21:
                 return "LOAD&RETURN s%1.1X, %2.2X" % (instr[11:8], instr[7:0])
 
-##Shouldn't need to rework the SPI class
-class SPI: #SPI = serial peripheral interface
-    map = { 'SPI_CtrlReg'    : 0x00030,
-            'SPI_StatusReg'  : 0x00034,
-            'SPI_WR'         : 0x00038,
-            'SPI_ExtCtrlReg' : 0x0003C }
-    
-    cmd = { 'RES'        : 0xAB ,
-            'RDID'       : 0x9F ,
-            'WREN'       : 0x06 ,
-            'WRDI'       : 0x04 ,
-            'RDSR'       : 0x05 ,
-            'WRSR'       : 0x01 ,
-            'READ'       : 0x03 ,
-            'FASTREAD'   : 0x0B ,
-            'PP'         : 0x02 ,
-            'SE'         : 0xD8 ,
-            'BE'         : 0xC7 }
-    
-    bits = { 'SPIF'      : 0x80,
-             'WCOL'      : 0x40,
-             'WFFULL'    : 0x08,
-             'WFEMPTY'   : 0x04,
-             'RFFULL'    : 0x02,
-             'RFEMPTY'   : 0x01 }
-    
-    def __init__(self, dev, base):
-        self.dev = dev
-        self.base = base
-        val = bf(self.dev.read(self.base + self.map['SPI_CtrlReg']))
-        val[6] = 1;
-        val[3] = 0;
-        val[2] = 0;
-        self.dev.write(self.base + self.map['SPI_CtrlReg'], int(val))
-
-    def command(self, device, command, dummy_bytes, num_read_bytes, data_in = [] ):
-        self.dev.spi_cs(device, 1)
-        self.dev.write(self.base + self.map['SPI_WR'], command)
-        for dat in data_in:
-            self.dev.write(self.base + self.map['SPI_WR'], dat)
-        for i in range(dummy_bytes):
-            self.dev.write(self.base + self.map['SPI_WR'], 0x00)
-        # Empty the read FIFO.
-        while not (self.dev.read(self.base + self.map['SPI_StatusReg']) & self.bits['RFEMPTY']):
-            self.dev.read(self.base + self.map['SPI_WR'])
-        rdata = []
-        for i in range(num_read_bytes):
-            self.dev.write(self.base + self.map['SPI_WR'], 0x00)
-            rdata.append(self.dev.read(self.base + self.map['SPI_WR']))
-        self.dev.spi_cs(device, 0)    
-        return rdata
-    
-    def identify(self, device=0):
-        res = self.command(device, self.cmd['RES'], 3, 1)
-        print "Electronic Signature: 0x%x" % res[0]
-        res = self.command(device, self.cmd['RDID'], 0, 3)
-        print "Manufacturer ID: 0x%x" % res[0]
-        print "Device ID: 0x%x 0x%x" % (res[1], res[2])
-
-    def read(self, address, length=1, device=0):
-        data_in = []
-        data_in.append((address >> 16) & 0xFF)
-        data_in.append((address >> 8) & 0xFF)
-        data_in.append(address & 0xFF)
-        res = self.command(device, self.cmd['READ'], 0, length, data_in)
-        return res        
         
 class SURF(ocpci.Device):
     map = { 'SURF_Dev'      	: 0x00000,
@@ -251,7 +186,7 @@ class SURF(ocpci.Device):
 
     def __init__(self, path="/sys/class/uio/uio0"):
         ocpci.Device.__init__(self, path, 1*1024*1024)
-        self.spi = SPI(self, self.map['spi_base'])
+        self.spi = spi.SPI(self, self.map['spi_base'])
 
     def __repr__(self):
         return "<SURF at %s>" % self.path
