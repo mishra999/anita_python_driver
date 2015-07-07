@@ -38,7 +38,7 @@ class SPI:
     def __init__(self, dev, base, device = 0):
         self.dev = dev
         self.base = base
-		self.device = device 
+        self.device = device 
         val = bf(self.dev.read(self.base + self.map['SPCR']))
         val[6] = 1;
         val[3] = 0;
@@ -78,15 +78,15 @@ class SPI:
         return res        
 		
     def program(self, address, data):
-		print "Inside function program: command to program the SPI flash" 
+        print "Inside function program: command to program the SPI flash" 
 	
 	
     def write_enable(self, status):
-		print "Inside function write_enable: command to make SPI flash write enabled" 
+        print "Inside function write_enable: command to make SPI flash write enabled" 
 
 	
-    def write_disable(self): 
-		print "Inside function write_disable: command to make SPI flash write disabled" 
+    def write_disable(self):
+        print "Inside function write_disable: command to make SPI flash write disabled" 
 	
 	
 	
