@@ -38,14 +38,14 @@ class SPI:
     def __init__(self, dev, base, device = 0):
         self.dev = dev
         self.base = base
-		self.device = device 
+	self.device = device 
         val = bf(self.dev.read(self.base + self.map['SPCR']))
         val[6] = 1;
         val[3] = 0;
         val[2] = 0;
         self.dev.write(self.base + self.map['SPCR'], int(val))
 
-    def command(self, self.device, command, dummy_bytes, num_read_bytes, data_in = [] ):
+    def command(self, command, dummy_bytes, num_read_bytes, data_in = [] ):
         self.dev.spi_cs(self.device, 1)
         self.dev.write(self.base + self.map['SPDR'], command)
         for dat in data_in:
@@ -62,10 +62,10 @@ class SPI:
         self.dev.spi_cs(self.device, 0)    
         return rdata
     
-    def identify(self, self.device):
-        res = self.command(self.device, self.cmd['RES'], 3, 1)
+    def identify(self):
+        res = self.command(self.cmd['RES'], 3, 1)
         print "Electronic Signature: 0x%x" % res[0]
-        res = self.command(self.device, self.cmd['RDID'], 0, 3)
+        res = self.command(self.cmd['RDID'], 0, 3)
         print "Manufacturer ID: 0x%x" % res[0]
         print "self.device ID: 0x%x 0x%x" % (res[1], res[2])
 
@@ -74,16 +74,19 @@ class SPI:
         data_in.append((address >> 16) & 0xFF)
         data_in.append((address >> 8) & 0xFF)
         data_in.append(address & 0xFF)
-        res = self.command(self.device, self.cmd['READ'], 0, length, data_in)
+        res = self.command(self.cmd['READ'], 0, length, data_in)
         return res        
 		
-	def program(self, address, data):
+    def program(self, address, data):
+	print "Inside function program: command to program the SPI flash" 
 	
 	
-	def write_enable():
+    def write_enable(self, status):
+	print "Inside function write_enable: command to make SPI flash write enabled" 
+
 	
-	
-	def write_disable(): 
+    def write_disable(self): 
+	print "Inside function write_disable: command to make SPI flash write disabled" 
 	
 	
 	
