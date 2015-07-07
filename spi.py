@@ -2,6 +2,13 @@ import ocpci
 import struct
 import sys
 import time
+from bf import * 
+
+
+#
+# This is the spi module
+# surf.py and tisc.py need to import this module
+#
 
 class SPI:
     map = { 'SPCR'       : 0x000000,
