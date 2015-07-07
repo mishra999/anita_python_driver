@@ -35,17 +35,18 @@ class SPI:
              'RFFULL'    : 0x02,
              'RFEMPTY'   : 0x01 }
     
-    def __init__(self, dev, base):
+    def __init__(self, dev, base, device = 0):
         self.dev = dev
         self.base = base
+		self.device = device 
         val = bf(self.dev.read(self.base + self.map['SPCR']))
         val[6] = 1;
         val[3] = 0;
         val[2] = 0;
         self.dev.write(self.base + self.map['SPCR'], int(val))
 
-    def command(self, device, command, dummy_bytes, num_read_bytes, data_in = [] ):
-        self.dev.spi_cs(device, 1)
+    def command(self, self.device, command, dummy_bytes, num_read_bytes, data_in = [] ):
+        self.dev.spi_cs(self.device, 1)
         self.dev.write(self.base + self.map['SPDR'], command)
         for dat in data_in:
             self.dev.write(self.base + self.map['SPDR'], dat)
@@ -58,20 +59,35 @@ class SPI:
         for i in range(num_read_bytes):
             self.dev.write(self.base + self.map['SPDR'], 0x00)
             rdata.append(self.dev.read(self.base + self.map['SPDR']))
-        self.dev.spi_cs(device, 0)    
+        self.dev.spi_cs(self.device, 0)    
         return rdata
     
-    def identify(self, device=0):
-        res = self.command(device, self.cmd['RES'], 3, 1)
+    def identify(self, self.device):
+        res = self.command(self.device, self.cmd['RES'], 3, 1)
         print "Electronic Signature: 0x%x" % res[0]
-        res = self.command(device, self.cmd['RDID'], 0, 3)
+        res = self.command(self.device, self.cmd['RDID'], 0, 3)
         print "Manufacturer ID: 0x%x" % res[0]
-        print "Device ID: 0x%x 0x%x" % (res[1], res[2])
+        print "self.device ID: 0x%x 0x%x" % (res[1], res[2])
 
-    def read(self, address, length=1, device=0):
+    def read(self, address, length=1):
         data_in = []
         data_in.append((address >> 16) & 0xFF)
         data_in.append((address >> 8) & 0xFF)
         data_in.append(address & 0xFF)
-        res = self.command(device, self.cmd['READ'], 0, length, data_in)
+        res = self.command(self.device, self.cmd['READ'], 0, length, data_in)
         return res        
+		
+	def program(self, address, data):
+	
+	
+	def write_enable():
+	
+	
+	def write_disable(): 
+	
+	
+	
+	
+	
+	
+	
