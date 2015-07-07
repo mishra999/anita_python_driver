@@ -163,14 +163,14 @@ class SURF(ocpci.Device):
 		
 				
     def led(self, arg):
-	    off_led_num = 14                     # initializing this to something while debugging 
-            on_led_num = 14
-            off_value = 2
-            on_value = 2
+        off_led_num = 14                     # initializing this to something while debugging 
+        on_led_num = 14
+        off_value = 2
+        on_value = 2
 	    self.led_unusedbits = "0000"                 
 	    self.led_KEY_list = [1]*12    #array so that we can change values, setting all to one initially
 	    print "LED function works!"
-            print "  "
+        print "  "
 	    if arg == "all off":
 		self.led_off()                             # call the function for turning LED's off 
 	    elif arg == "all on":
@@ -182,11 +182,11 @@ class SURF(ocpci.Device):
 		off_value = 0 
 		self.led_one(off_led_num,off_value)
 	    elif arg == "one on":
-	        on_led_num = int(input("Enter number of LED you want to turn on: "))
+	    on_led_num = int(input("Enter number of LED you want to turn on: "))
 		on_value = 1
-	        self.led_one(on_led_num,on_value)
+	    self.led_one(on_led_num,on_value)
 	    else:
-                print "Invalid argument! Your options are all off, all on, release, one off, one on" 
+            print "Invalid argument! Your options are all off, all on, release, one off, one on" 
 	
 
     def list_to_string(self,list):
@@ -195,20 +195,20 @@ class SURF(ocpci.Device):
 				
     def led_one(self,led_num,value):
         led_current = bf(self.read(self.map['SURF_LED']))
-	led_current_binary = "{0:b}".format(led_current[31:0])                             # string containing current LED configuration in binary
-	led_current_binary = "0000" + led_current_binary
-	print "integer value of led_current_binary: " + str(int(led_current_binary,base=2))
-	print led_num
-	print value 
-	print "current LED values in binary: " + led_current_binary                        # this string misses the first four zeros!
-	print len(led_current_binary)
-	print led_current_binary[0]
-	print led_current_binary[15], led_current_binary[16]
-	print led_current_binary[27] 
+	    led_current_binary = "{0:b}".format(led_current[31:0])                             # string containing current LED configuration in binary
+        led_current_binary = "0000" + led_current_binary
+        print "integer value of led_current_binary: " + str(int(led_current_binary,base=2))
+        print led_num
+        print value 
+        print "current LED values in binary: " + led_current_binary                        # this string misses the first four zeros!
+        print len(led_current_binary)
+        print led_current_binary[0]
+        print led_current_binary[15], led_current_binary[16]
+        print led_current_binary[27] 
         print "the type of led_current_binary is: %s" % (type(led_current_binary))         # check it's a string!
         print " "       
-	led_current_VALUE = led_current_binary[20:32]                                      # take last part of string to get just VALUES
-	led_VALUE_list = list(led_current_VALUE)                                           # turn string into list so we can easily toggle its values
+        led_current_VALUE = led_current_binary[20:32]                                      # take last part of string to get just VALUES
+        led_VALUE_list = list(led_current_VALUE)                                           # turn string into list so we can easily toggle its values
         print "The length of the array is %d" % (len(led_VALUE_list))	
         led_VALUE_list[led_num] = value                                                    # change the LED value that user wants to change 
         led_VALUE_string = self.list_to_string(led_VALUE_list)                             # turn list of LED values back into string 
@@ -216,37 +216,34 @@ class SURF(ocpci.Device):
         led_full_string = self.led_unusedbits + led_KEY_string + self.led_unusedbits + led_VALUE_string    # put the different strings together to get full LED configuration
         print "updated LED values in binary: " + led_full_string
         self.write(self.map['SURF_LED'],int(led_full_string,base=2))                       # write in this new configuration to see the change take place 	
-	print "integer value of led_full_string: " + str(int(led_full_string,base=2))
-	
-        
-
+        print "integer value of led_full_string: " + str(int(led_full_string,base=2))
         u= bf(self.read(self.map['SURF_LED']))
         y= "{0:b}".format(u[31:0])	
         print "after we change everyting: "+"0000" + y		
-	print led_num
-	print value 
+        print led_num
+        print value 
 
     def led_off(self):
-	self.write(self.map['SURF_LED'],0x0fff0000)
+        self.write(self.map['SURF_LED'],0x0fff0000)
             		
 
     def led_on(self):
-	self.write(self.map['SURF_LED'],0x0fff0fff)           
+        self.write(self.map['SURF_LED'],0x0fff0fff)           
             
 
     def led_release(self):
-	self.write(self.map['SURF_LED'],0x00000000)  
+        self.write(self.map['SURF_LED'],0x00000000)  
        
 			
     def status(self):
-       		clocksel = bf(self.read(self.map['SURF_ClkSel']))
+       	clocksel = bf(self.read(self.map['SURF_ClkSel']))
 		pullctrl = bf(self.read(self.map['SURF_PllCtrl']))
 		int_status = bf(self.read(self.map['SURF_IntStatus']))
 		int_mask = bf(self.read(self.map['SURF_IntMask']))
 		led = bf(self.read(self.map['SURF_LED']))
-       		print "Clock Status: LAB4 Clock is %s (SURF_ClkSel[1] = %d)" % ("enabled" if clocksel[1] else "not enabled", clocksel[1])
+       	print "Clock Status: LAB4 Clock is %s (SURF_ClkSel[1] = %d)" % ("enabled" if clocksel[1] else "not enabled", clocksel[1])
 		print "            : LAB4 Driving Clock is %s (SURF_ClkSel[0] = %d)" % ("TURF Clock" if clocksel[0] else "FPGA Clock", clocksel[0])
-        	print "            : FPGA Driving Clock is %s (SURF_ClkSel[2] = %d)" % ("TURF Clock" if clocksel[2] else "Local Clock", clocksel[2])
+        print "            : FPGA Driving Clock is %s (SURF_ClkSel[2] = %d)" % ("TURF Clock" if clocksel[2] else "Local Clock", clocksel[2])
 		print " Int Status : %8.8x" % (self.read(self.map['SURF_IntStatus']) & 0xFFFFFFFF)
 		print " LED        : Internal value %3.3x, Key value %3.3x" % (led[11:0], led[27:16])
 		print " Full LED   : %8.8x" % (self.read(self.map['SURF_LED']) & 0xFFFFFFFF)
