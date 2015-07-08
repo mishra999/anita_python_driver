@@ -132,17 +132,17 @@ class PicoBlaze: #no changes from the copy in the tisc.py class
 
         
 class SURF(ocpci.Device):
-    map = { 'SURF_Dev'      	: 0x00000,
-            'SURF_Ver'      	: 0x00004,
-            'SURF_IntStatus' 	: 0x00008,
-            'SURF_IntMask' 		: 0x0000C,
-            'SURF_PPSSel' 		: 0x00010,
-            'SURF_Reset' 		: 0x00014,
-            'SURF_LED' 		    : 0x00018,
-            'SURF_ClkSel' 		: 0x0001C,      ## this is a clock
-            'SURF_PllCtrl' 		: 0x00020,      ## this is a clock, PLL = phase locked loop 
-            'spi_cs'     		: 0x00024,      ## this is the spiss variable in the firmware doc 
-            'spi_base'   		: 0x00030,
+    map = { 'SURF_Dev'          : 0x00000,
+            'SURF_Ver'          : 0x00004,
+            'SURF_IntStatus'    : 0x00008,
+            'SURF_IntMask'      : 0x0000C,
+            'SURF_PPSSel'       : 0x00010,
+            'SURF_Reset'        : 0x00014,
+            'SURF_LED'          : 0x00018,
+            'SURF_ClkSel'       : 0x0001C,      ## this is a clock
+            'SURF_PllCtrl'      : 0x00020,      ## this is a clock, PLL = phase locked loop 
+            'spi_cs'            : 0x00024,      ## this is the spiss variable in the firmware doc 
+            'spi_base'          : 0x00030,
 			}
 
     def __init__(self, path="/sys/class/uio/uio0"):
