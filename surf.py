@@ -138,11 +138,11 @@ class SURF(ocpci.Device):
 			'SURF_IntMask' 		: 0x0000C, 
 			'SURF_PPSSel' 		: 0x00010, 
 			'SURF_Reset' 		: 0x00014, 
-			'SURF_LED' 		: 0x00018, 
-			'SURF_ClkSel' 		: 0x0001C,  ##this is a clock
-			'SURF_PllCtrl' 		: 0x00020,  ##this is a clock, PLL = phase locked loop 
-            		'spi_cs'     		: 0x00024,  ##this is the spiss variable in the firmware doc 
-            		'spi_base'   		: 0x00030,
+			'SURF_LED' 		    : 0x00018, 
+			'SURF_ClkSel' 		: 0x0001C,      ## this is a clock
+			'SURF_PllCtrl' 		: 0x00020,      ## this is a clock, PLL = phase locked loop 
+            'spi_cs'     		: 0x00024,      ## this is the spiss variable in the firmware doc 
+            'spi_base'   		: 0x00030,
 			}
 
     def __init__(self, path="/sys/class/uio/uio0"):
@@ -172,19 +172,19 @@ class SURF(ocpci.Device):
 	    print "LED function works!"
         print "  "
 	    if arg == "all off":
-		self.led_off()                             # call the function for turning LED's off 
+	        self.led_off()                             # call the function for turning LED's off 
 	    elif arg == "all on":
-		self.led_on()                             # call the function for turning LED's on 
+	        self.led_on()                              # call the function for turning LED's on 
 	    elif arg == "release":
-		self.led_release()                        # call function for releasing LED (we stop controlling it)
+	        self.led_release()                         # call function for releasing LED (we stop controlling it)
 	    elif arg == "one off":
-		off_led_num = int(input("Enter number of LED you want to turn off: "))
-		off_value = 0 
-		self.led_one(off_led_num,off_value)
+	        off_led_num = int(input("Enter number of LED you want to turn off: "))
+	        off_value = 0 
+	        self.led_one(off_led_num,off_value)
 	    elif arg == "one on":
-	    on_led_num = int(input("Enter number of LED you want to turn on: "))
-		on_value = 1
-	    self.led_one(on_led_num,on_value)
+	        on_led_num = int(input("Enter number of LED you want to turn on: "))
+	        on_value = 1
+	        self.led_one(on_led_num,on_value)
 	    else:
             print "Invalid argument! Your options are all off, all on, release, one off, one on" 
 	
@@ -236,18 +236,18 @@ class SURF(ocpci.Device):
        
 			
     def status(self):
-       	clocksel = bf(self.read(self.map['SURF_ClkSel']))
-		pullctrl = bf(self.read(self.map['SURF_PllCtrl']))
-		int_status = bf(self.read(self.map['SURF_IntStatus']))
-		int_mask = bf(self.read(self.map['SURF_IntMask']))
-		led = bf(self.read(self.map['SURF_LED']))
-       	print "Clock Status: LAB4 Clock is %s (SURF_ClkSel[1] = %d)" % ("enabled" if clocksel[1] else "not enabled", clocksel[1])
-		print "            : LAB4 Driving Clock is %s (SURF_ClkSel[0] = %d)" % ("TURF Clock" if clocksel[0] else "FPGA Clock", clocksel[0])
+        clocksel = bf(self.read(self.map['SURF_ClkSel']))
+        pullctrl = bf(self.read(self.map['SURF_PllCtrl']))
+        int_status = bf(self.read(self.map['SURF_IntStatus']))
+        int_mask = bf(self.read(self.map['SURF_IntMask']))
+        led = bf(self.read(self.map['SURF_LED']))
+        print "Clock Status: LAB4 Clock is %s (SURF_ClkSel[1] = %d)" % ("enabled" if clocksel[1] else "not enabled", clocksel[1])
+        print "            : LAB4 Driving Clock is %s (SURF_ClkSel[0] = %d)" % ("TURF Clock" if clocksel[0] else "FPGA Clock", clocksel[0])
         print "            : FPGA Driving Clock is %s (SURF_ClkSel[2] = %d)" % ("TURF Clock" if clocksel[2] else "Local Clock", clocksel[2])
-		print " Int Status : %8.8x" % (self.read(self.map['SURF_IntStatus']) & 0xFFFFFFFF)
-		print " LED        : Internal value %3.3x, Key value %3.3x" % (led[11:0], led[27:16])
-		print " Full LED   : %8.8x" % (self.read(self.map['SURF_LED']) & 0xFFFFFFFF)
-		print " Int Mask   : %8.8x" % (self.read(self.map['SURF_IntMask']) & 0xFFFFFFFF)
+	    print " Int Status : %8.8x" % (self.read(self.map['SURF_IntStatus']) & 0xFFFFFFFF)
+	    print " LED        : Internal value %3.3x, Key value %3.3x" % (led[11:0], led[27:16])
+	    print " Full LED   : %8.8x" % (self.read(self.map['SURF_LED']) & 0xFFFFFFFF)
+	    print " Int Mask   : %8.8x" % (self.read(self.map['SURF_IntMask']) & 0xFFFFFFFF)
 		
 		
 		
