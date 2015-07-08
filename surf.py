@@ -143,7 +143,7 @@ class SURF(ocpci.Device):
             'SURF_PllCtrl'      : 0x00020,      ## this is a clock, PLL = phase locked loop 
             'spi_cs'            : 0x00024,      ## this is the spiss variable in the firmware doc 
             'spi_base'          : 0x00030,
-			}
+           }
 
     def __init__(self, path="/sys/class/uio/uio0"):
         ocpci.Device.__init__(self, path, 1*1024*1024)
@@ -172,7 +172,7 @@ class SURF(ocpci.Device):
         print "LED function works!"
         print "  "
         if arg == "all off":
-	        self.led_off()                             # call the function for turning LED's off
+            self.led_off()                             # call the function for turning LED's off
         elif arg == "all on":
             self.led_on()                              # call the function for turning LED's on
         elif arg == "release":
