@@ -167,25 +167,25 @@ class SURF(ocpci.Device):
         on_led_num = 14
         off_value = 2
         on_value = 2
-	    self.led_unusedbits = "0000"                 
-	    self.led_KEY_list = [1]*12    #array so that we can change values, setting all to one initially
-	    print "LED function works!"
+        self.led_unusedbits = "0000"
+        self.led_KEY_list = [1]*12    #array so that we can change values, setting all to one initially
+        print "LED function works!"
         print "  "
-	    if arg == "all off":
-	        self.led_off()                             # call the function for turning LED's off 
-	    elif arg == "all on":
-	        self.led_on()                              # call the function for turning LED's on 
-	    elif arg == "release":
-	        self.led_release()                         # call function for releasing LED (we stop controlling it)
-	    elif arg == "one off":
-	        off_led_num = int(input("Enter number of LED you want to turn off: "))
-	        off_value = 0 
-	        self.led_one(off_led_num,off_value)
-	    elif arg == "one on":
-	        on_led_num = int(input("Enter number of LED you want to turn on: "))
-	        on_value = 1
-	        self.led_one(on_led_num,on_value)
-	    else:
+        if arg == "all off":
+	        self.led_off()                             # call the function for turning LED's off
+        elif arg == "all on":
+            self.led_on()                              # call the function for turning LED's on
+        elif arg == "release":
+            self.led_release()                         # call function for releasing LED (we stop controlling it)
+        elif arg == "one off":
+            off_led_num = int(input("Enter number of LED you want to turn off: "))
+            off_value = 0
+            self.led_one(off_led_num,off_value)
+        elif arg == "one on":
+            on_led_num = int(input("Enter number of LED you want to turn on: "))
+            on_value = 1
+            self.led_one(on_led_num,on_value)
+        else:
             print "Invalid argument! Your options are all off, all on, release, one off, one on" 
 	
 
@@ -195,7 +195,7 @@ class SURF(ocpci.Device):
 				
     def led_one(self,led_num,value):
         led_current = bf(self.read(self.map['SURF_LED']))
-	    led_current_binary = "{0:b}".format(led_current[31:0])                             # string containing current LED configuration in binary
+        led_current_binary = "{0:b}".format(led_current[31:0])                             # string containing current LED configuration in binary
         led_current_binary = "0000" + led_current_binary
         print "integer value of led_current_binary: " + str(int(led_current_binary,base=2))
         print led_num
@@ -244,10 +244,10 @@ class SURF(ocpci.Device):
         print "Clock Status: LAB4 Clock is %s (SURF_ClkSel[1] = %d)" % ("enabled" if clocksel[1] else "not enabled", clocksel[1])
         print "            : LAB4 Driving Clock is %s (SURF_ClkSel[0] = %d)" % ("TURF Clock" if clocksel[0] else "FPGA Clock", clocksel[0])
         print "            : FPGA Driving Clock is %s (SURF_ClkSel[2] = %d)" % ("TURF Clock" if clocksel[2] else "Local Clock", clocksel[2])
-	    print " Int Status : %8.8x" % (self.read(self.map['SURF_IntStatus']) & 0xFFFFFFFF)
-	    print " LED        : Internal value %3.3x, Key value %3.3x" % (led[11:0], led[27:16])
-	    print " Full LED   : %8.8x" % (self.read(self.map['SURF_LED']) & 0xFFFFFFFF)
-	    print " Int Mask   : %8.8x" % (self.read(self.map['SURF_IntMask']) & 0xFFFFFFFF)
+        print " Int Status : %8.8x" % (self.read(self.map['SURF_IntStatus']) & 0xFFFFFFFF)
+        print " LED        : Internal value %3.3x, Key value %3.3x" % (led[11:0], led[27:16])
+        print " Full LED   : %8.8x" % (self.read(self.map['SURF_LED']) & 0xFFFFFFFF)
+        print " Int Mask   : %8.8x" % (self.read(self.map['SURF_IntMask']) & 0xFFFFFFFF)
 		
 		
 		
