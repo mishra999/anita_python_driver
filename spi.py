@@ -75,18 +75,51 @@ class SPI:
         data_in.append((address >> 8) & 0xFF)
         data_in.append(address & 0xFF)
         res = self.command(self.cmd['READ'], 0, length, data_in)
-        return res        
-		
-    def program(self, address, data):
-        print "Inside function program: command to program the SPI flash" 
-	
-	
-    def write_enable(self, status):
-        print "Inside function write_enable: command to make SPI flash write enabled" 
+        return res 
 
+        
+#Oindree found from datasheet:         
+#
+#The WEL bit must be set to 1 to enable program, write, or erase operations 
+#as a means to provide protection against inadvertent changes to memory or register values. 
+#The Write Enable (WREN) command execution sets the Write Enable Latch to a 1 to allow any program, 
+#erase, or write commands to execute afterwards. The Write Disable (WRDI) command can be used to set the 
+#Write Enable Latch to a 0 to prevent all program, erase, and write commands from execution. The WEL 
+#bit is cleared to 0 at the end of any successful program, write, or erase operation. 
+#Following a failed operation the WEL bit may remain set and should be cleared with a WRDI
+#command following a CLSR command. After a power down/power up sequence, hardware reset, or software reset,
+#the Write Enable Latch is set to a 0 
+#The WRR command does not affect this bit.         
+#		
+
+    
 	
+    def write_enable(self):
+        print "Inside function write_enable: command to make SPI flash write enabled" 
+        #Need to execute WREN here
+        #Call the function command which was written to send commands
+        #arguments dummy_bytes = 0 and num_read_bytes = 0 I guess 
+        enable = self.command(self.cmd["WREN"], 0, 0)
+        return enable
+        
+        
     def write_disable(self):
         print "Inside function write_disable: command to make SPI flash write disabled" 
+        #Need to execute WRDI here 
+        #Call the function command which was written to send commands
+        #arguments dummy_bytes = 0 and num_read_bytes = 0 I guess 
+        disable = self.command(self.cmd["WRDI"], 0, 0)
+        return disable
+        
+        
+    def program(self, address, data):
+        print "Inside function program: command to program the SPI flash" 
+        #Need to execute PP here 
+        #Call the function command which was written to send commands
+        #arguments dummy_bytes = ? and num_read_bytes = ? 
+        program_length = len(data)
+        program = self.command(self.cmd["PP"], 0, program_length, data)
+        return program
 	
 	
 	
