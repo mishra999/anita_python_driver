@@ -112,13 +112,16 @@ class SPI:
         return disable
         
         
-    def program(self, address, data):
+    def program(self, address = 0x1ffff00, data = []):
         print "Inside function program: command to program the SPI flash" 
         #Need to execute PP here 
-        #Call the function command which was written to send commands
+         #Call the function command which was written to send commands
         #arguments dummy_bytes = ? and num_read_bytes = ? 
-        program_length = len(data)
-        program = self.command(self.cmd["PP"], 0, program_length, data)
+	print hex(address)
+	data.append((address >> 16) & 0xff)
+	data.append((address >> 8) & 0xff)
+	data.append(address & 0x00)
+        program = self.command(self.cmd["PP"], 0, 32, data)
         return program
 	
 	
