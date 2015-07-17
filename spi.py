@@ -22,10 +22,10 @@ class SPI:
             'WRDI'       : 0x04 ,
             'RDSR'       : 0x05 ,
             'WRSR'       : 0x01 ,
-            'READ'       : 0x03 ,
+            'READ'       : 0x13 , #changed from 0x03
             'FASTREAD'   : 0x0B ,
-            'PP'         : 0x02 ,
-            'SE'         : 0xD8 ,
+            'PP'         : 0x12 , #3 byte address is 0x02
+            'SE'         : 0xDC , #changed from 0xD8
             'BE'         : 0xC7 }
     
     bits = { 'SPIF'      : 0x80,
@@ -75,6 +75,16 @@ class SPI:
         data_in.append((address >> 8) & 0xFF)
         data_in.append(address & 0xFF)
         res = self.command(self.cmd['READ'], 0, length, data_in)
+	print len(res)
+	print type(res)
+	x = 0
+	for i in range (0,65536):
+            if res[i] == 0:
+	        x += 1
+	        print i
+        print "total number of 0's:"
+	print x
+	
         return res 
 
         
@@ -115,7 +125,7 @@ class SPI:
     def program(self, address = 0x1ffff00, data = []):
         print "Inside function program: command to program the SPI flash" 
         #Need to execute PP here 
-         #Call the function command which was written to send commands
+        #Call the function command which was written to send commands
         #arguments dummy_bytes = ? and num_read_bytes = ? 
 	print hex(address)
 	data.append((address >> 16) & 0xff)
@@ -123,6 +133,12 @@ class SPI:
 	data.append(address & 0x00)
         program = self.command(self.cmd["PP"], 0, 32, data)
         return program
+
+
+    def erase(self, address): 
+	print "Inside function erase: command sector erase or SE to erase parts of SPI flash"
+	erase = self.command(self.cmd["SE"], 0, 32)
+	return erase 
 	
 	
 	
