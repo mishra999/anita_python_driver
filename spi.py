@@ -22,10 +22,15 @@ class SPI:
             'WRDI'       : 0x04 ,
             'RDSR'       : 0x05 ,
             'WRSR'       : 0x01 ,
-            'READ'       : 0x13 , #changed from 0x03
+            '4READ'      : 0x13 , 
+	    '3READ'      : 0x03 ,   
             'FASTREAD'   : 0x0B ,
-            'PP'         : 0x12 , #3 byte address is 0x02
-            'SE'         : 0xDC , #changed from 0xD8
+            '4PP'        : 0x12 , 
+	    '3PP'        : 0x02 , 
+            '4SE'        : 0xDC , 
+            '3SE'        : 0xD8 ,
+            'BRRD'       : 0x16 , 
+            'BRWR'       : 0x17 , 
             'BE'         : 0xC7 }
     
     bits = { 'SPIF'      : 0x80,
@@ -73,8 +78,9 @@ class SPI:
         data_in = []
         data_in.append((address >> 16) & 0xFF)
         data_in.append((address >> 8) & 0xFF)
+	#data_in.append((address >> 8) & 0xFF) #added this line
         data_in.append(address & 0xFF)
-        res = self.command(self.cmd['READ'], 0, length, data_in)
+        res = self.command(self.cmd['4READ'], 0, length, data_in)
 	print len(res)
 	print type(res)
 	x = 0
@@ -130,17 +136,28 @@ class SPI:
 	print hex(address)
 	data.append((address >> 16) & 0xff)
 	data.append((address >> 8) & 0xff)
+	data.append((address >> 8) & 0xff) #added this line
 	data.append(address & 0x00)
-        program = self.command(self.cmd["PP"], 0, 32, data)
+        program = self.command(self.cmd["4PP"], 0, 256, data)
         return program
 
 
     def erase(self, address): 
 	print "Inside function erase: command sector erase or SE to erase parts of SPI flash"
-	erase = self.command(self.cmd["SE"], 0, 32)
-	return erase 
+	erase = self.command(self.cmd["4SE"], 0, 65536)
+	return erase
+
+
+    def write_bank_address(self):
+	print "Inside function write_bank_address that writes the bank byte to 0 (3 byte) or 1 (4 byte)" 
+	bank_write = self.command(self.cmd["BRWR"], 0, 1, [0,0,0,0,0,0,0,1])
+	return bank_write 	
 	
-	
+
+    def read_bank_address(self):
+	print "Inside function read_bank_address that reads the bank byte" 
+	bank_read = self.command(self.cmd["BRRD"], 0, 1)
+	return bank_read
 	
 	
 	
