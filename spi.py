@@ -80,18 +80,18 @@ class SPI:
         data_in.append((address >> 8) & 0xFF)
 	#data_in.append((address >> 8) & 0xFF) #added this line
         data_in.append(address & 0xFF)
-        res = self.command(self.cmd['4READ'], 0, length, data_in)
-	print len(res)
-	print type(res)
+        result = self.command(self.cmd['4READ'], 0, length, data_in)
+	print len(result)
+	print type(result)
 	x = 0
 	for i in range (0,65536):
-            if res[i] == 0:
+            if result[i] == 0:
 	        x += 1
 	        print i
-        print "total number of 0's:"
-	print x
 	
-        return res 
+        print result 
+	print "Number of zeros:" 
+	print x
 
         
 #Oindree found from datasheet:         
@@ -138,19 +138,20 @@ class SPI:
 	data.append((address >> 8) & 0xff)
 	data.append((address >> 8) & 0xff) #added this line
 	data.append(address & 0x00)
+	data.append([0]*256)
         program = self.command(self.cmd["4PP"], 0, 256, data)
         return program
 
 
     def erase(self, address): 
 	print "Inside function erase: command sector erase or SE to erase parts of SPI flash"
-	erase = self.command(self.cmd["4SE"], 0, 65536)
+	erase = self.command(self.cmd["4SE"], 0, 0, [ address ])
 	return erase
 
 
-    def write_bank_address(self):
+    def write_bank_address(self, bank):
 	print "Inside function write_bank_address that writes the bank byte to 0 (3 byte) or 1 (4 byte)" 
-	bank_write = self.command(self.cmd["BRWR"], 0, 1, [0,0,0,0,0,0,0,1])
+	bank_write = self.command(self.cmd["BRWR"], 0, 0, [ bank ])
 	return bank_write 	
 	
 
