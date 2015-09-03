@@ -138,9 +138,19 @@ class SPI:
 	data.append((address >> 8) & 0xff)
 	data.append((address >> 8) & 0xff) #added this line
 	data.append(address & 0x00)
-	data.append([0]*256)
+	for i in range(0,256):
+	    data.append(0)
+	#data.append(0000000000000000000000000000)
         program = self.command(self.cmd["4PP"], 0, 256, data)
-        return program
+        #length=len(data)
+	for i in range(0,40):
+	    print hex(data[i])
+	print "hex is over"
+	print data
+	print "data is over"
+	data = [] 
+	return data 
+	#return program
 
 
     def erase(self, address): 
