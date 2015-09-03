@@ -128,20 +128,22 @@ class SPI:
         return disable
         
         
-    def program(self, address = 0x1ffff00, data = []):
+    def page_program(self, address = 0x1ffff00, data = []):
         print "Inside function program: command to program the SPI flash" 
+	self.write_enable()
         #Need to execute PP here 
         #Call the function command which was written to send commands
         #arguments dummy_bytes = ? and num_read_bytes = ? 
 	print hex(address)
-	data.append((address >> 16) & 0xff)
-	data.append((address >> 8) & 0xff)
-	data.append((address >> 8) & 0xff) #added this line
-	data.append(address & 0x00)
-	for i in range(0,255):
-	    data.append(0)
-	#data.append(0000000000000000000000000000)
-        program = self.command(self.cmd["4PP"], 0, 256, data)
+	towrite = []
+	towrite.append((address >> 24) & 0xFF)
+	towrite.append((address >> 16) & 0xFF)
+ 	towrite.append((address >> 8) & 0xFF)
+	towrite.append(address & 0xFF)
+	# Magic python command to add data to the end of this list
+	# Check that data is 256 bytes
+	
+        program = self.command(self.cmd["4PP"], 0, 0, data)
         length=len(data)
 	for i in range(0,length):
 	    print hex(data[i])
