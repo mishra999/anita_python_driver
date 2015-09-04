@@ -74,56 +74,24 @@ class SPI:
         print "Manufacturer ID: 0x%x" % res[0]
         print "self.device ID: 0x%x 0x%x" % (res[1], res[2])
 
-    def read(self, address, length=1):
+    def read(self, address, length):
         data_in = []
+        data_in.append((address >> 24) & 0xFF)
         data_in.append((address >> 16) & 0xFF)
-        data_in.append((address >> 8) & 0xFF)
-	#data_in.append((address >> 8) & 0xFF) #added this line
+	data_in.append((address >> 8) & 0xFF)
         data_in.append(address & 0xFF)
         result = self.command(self.cmd['4READ'], 0, length, data_in)
-	print len(result)
-	print type(result)
-	x = 0
-	for i in range (0,65536):
-            if result[i] == 0:
-	        x += 1
-	        print i
-	
-        print result 
-	print "Number of zeros:" 
-	print x
+	return result 
 
-        
-#Oindree found from datasheet:         
-#
-#The WEL bit must be set to 1 to enable program, write, or erase operations 
-#as a means to provide protection against inadvertent changes to memory or register values. 
-#The Write Enable (WREN) command execution sets the Write Enable Latch to a 1 to allow any program, 
-#erase, or write commands to execute afterwards. The Write Disable (WRDI) command can be used to set the 
-#Write Enable Latch to a 0 to prevent all program, erase, and write commands from execution. The WEL 
-#bit is cleared to 0 at the end of any successful program, write, or erase operation. 
-#Following a failed operation the WEL bit may remain set and should be cleared with a WRDI
-#command following a CLSR command. After a power down/power up sequence, hardware reset, or software reset,
-#the Write Enable Latch is set to a 0 
-#The WRR command does not affect this bit.         
-#		
-
-    
 	
     def write_enable(self):
         print "Inside function write_enable: command to make SPI flash write enabled" 
-        #Need to execute WREN here
-        #Call the function command which was written to send commands
-        #arguments dummy_bytes = 0 and num_read_bytes = 0 I guess 
         enable = self.command(self.cmd["WREN"], 0, 0)
         return enable
         
         
     def write_disable(self):
         print "Inside function write_disable: command to make SPI flash write disabled" 
-        #Need to execute WRDI here 
-        #Call the function command which was written to send commands
-        #arguments dummy_bytes = 0 and num_read_bytes = 0 I guess 
         disable = self.command(self.cmd["WRDI"], 0, 0)
         return disable
         
@@ -131,34 +99,37 @@ class SPI:
     def page_program(self, address = 0x1ffff00, data = []):
         print "Inside function program: command to program the SPI flash" 
 	self.write_enable()
-        #Need to execute PP here 
-        #Call the function command which was written to send commands
-        #arguments dummy_bytes = ? and num_read_bytes = ? 
 	print hex(address)
-	towrite = []
-	towrite.append((address >> 24) & 0xFF)
-	towrite.append((address >> 16) & 0xFF)
- 	towrite.append((address >> 8) & 0xFF)
-	towrite.append(address & 0xFF)
-	# Magic python command to add data to the end of this list
-	# Check that data is 256 bytes
-	
-        program = self.command(self.cmd["4PP"], 0, 0, data)
+	data.append((address >> 24) & 0xFF)
+	data.append((address >> 16) & 0xFF)
+ 	data.append((address >> 8) & 0xFF)
+	data.append(address & 0xFF)
+	for i in range(256):
+	    data.append(0x00)
+	if (len(data)-4) != 256:
+	    print "something wrong with data length!"
+	    print data
+	else:
+	    print len(data)
+            print data
+
+	self.command(self.cmd["4PP"], 0, 0, data)
         length=len(data)
+	hex_data= []
 	for i in range(0,length):
-	    print hex(data[i])
-	print "hex is over"
-	print data
-	print "data is over"
-	data = [] 
-	return data 
-	#return program
+	    hex_data.append(hex(data[i]))
+	print hex_data
 
 
     def erase(self, address): 
 	print "Inside function erase: command sector erase or SE to erase parts of SPI flash"
-	erase = self.command(self.cmd["4SE"], 0, 0, [ address ])
-	return erase
+	self.write_enable()
+	data = []
+	data.append((address >> 24) & 0xFF)
+	data.append((address >> 16) & 0xFF)
+	data.append((address >> 8) & 0xFF)
+	data.append((address & 0xFF))
+	erase = self.command(self.cmd["4SE"], 0, 0, data)
 
 
     def write_bank_address(self, bank):
