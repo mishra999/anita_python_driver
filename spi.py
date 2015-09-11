@@ -10,6 +10,9 @@ from bf import *
 # surf.py and tisc.py need to import this module
 #
 
+#It appears that the SPI flash can dump the FIFO faster than we can write to it
+#But we did not confirm whether this is due to python speed or actually the SPI being fast enough
+
 class SPI:
     map = { 'SPCR'       : 0x000000,
             'SPSR'       : 0x000004,
@@ -53,8 +56,13 @@ class SPI:
     def command(self, command, dummy_bytes, num_read_bytes, data_in = [] ):
         self.dev.spi_cs(self.device, 1)
         self.dev.write(self.base + self.map['SPDR'], command)
-        for dat in data_in:
-            self.dev.write(self.base + self.map['SPDR'], dat)
+	x = 0 
+	for dat in data_in:
+	    self.dev.write(self.base + self.map['SPDR'], dat)
+	    val = bf(self.map['SPSR'])
+	    x+=1
+            if val[6] == 1:
+	        return x 	
         for i in range(dummy_bytes):
             self.dev.write(self.base + self.map['SPDR'], 0x00)
         # Empty the read FIFO.
@@ -66,6 +74,16 @@ class SPI:
             rdata.append(self.dev.read(self.base + self.map['SPDR']))
         self.dev.spi_cs(self.device, 0)    
         return rdata
+	
+
+    def test_wcol(self, size):
+	print "Inside function test_wcol: function to test if we are trying to send too many bytes at a time" 
+	self.write_enable()
+	data = [] 
+	for i in range(size):
+	    data.append(0x00) 
+	self.command(self.cmd['RES'],0,0,data)
+	
     
     def identify(self):
         res = self.command(self.cmd['RES'], 3, 1)
@@ -73,6 +91,7 @@ class SPI:
         res = self.command(self.cmd['RDID'], 0, 3)
         print "Manufacturer ID: 0x%x" % res[0]
         print "self.device ID: 0x%x 0x%x" % (res[1], res[2])
+
 
     def read(self, address, length):
         data_in = []
