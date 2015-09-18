@@ -121,13 +121,19 @@ class SPI:
         if type(datafilename) != str:
             return "data filename must be a string!"   
         datafile = open(datafilename)
-        data = datafile.read().split(',')
-        hexdata = [] 
-        for i in range(len(data)):
-            hexdata.append(hex(int(data[i],16)))
-	print "hexdata is:"
-	print hexdata 
-        #self.page_program(address, hexdata)          
+        data = datafile.read()
+	print data 
+	num_eightbit = len(data)/8
+	eightbit = [] 
+        for i in range(0,len(data),8):
+	    eightbit.append(data[i:i+8])
+	print "eightbit is:"
+	print eightbit
+	for i in range(len(eightbit)-1):
+	    eightbit[i] = int(("0b" + eightbit[i]),2)
+	print "eightbit turned into ints is:"
+	print eightbit
+        #self.page_program(address, eightbit)          
        
         
         
