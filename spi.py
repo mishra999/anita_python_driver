@@ -113,16 +113,35 @@ class SPI:
         print "Inside function write_disable: command to make SPI flash write disabled" 
         disable = self.command(self.cmd["WRDI"], 0, 0)
         return disable
+
+
+    def program(self, address, datafilename):
+        print "Inside function program"
+        self.write_enable()
+        if type(datafilename) != str:
+            return "data filename must be a string!"   
+        datafile = open(datafilename)
+        data = datafile.read().split(',')
+        hexdata = [] 
+        for i in range(len(data)):
+            hexdata.append(hex(int(data[i],16)))
+	print "hexdata is:"
+	print hexdata 
+        #self.page_program(address, hexdata)          
+       
         
         
-    def page_program(self, address = 0x1ffff00, data = []):
-        print "Inside function program: command to program the SPI flash" 
+    def page_program(self, address, data = []):
+        print "Inside function page_program: command to program the SPI flash" 
 	self.write_enable()
 	print hex(address)
 	data.append((address >> 24) & 0xFF)
 	data.append((address >> 16) & 0xFF)
  	data.append((address >> 8) & 0xFF)
 	data.append(address & 0xFF)
+	self.command(self.cmd["4PP"], 0, 0, data)
+
+    ''' 
 	for i in range(256):
 	    data.append(0x00)
 	if (len(data)-4) != 256:
@@ -131,14 +150,14 @@ class SPI:
 	else:
 	    print len(data)
             print data
-
-	self.command(self.cmd["4PP"], 0, 0, data)
+       
         length=len(data)
 	hex_data= []
 	for i in range(0,length):
 	    hex_data.append(hex(data[i]))
 	print hex_data
 
+     '''
 
     def erase(self, address): 
 	print "Inside function erase: command sector erase or SE to erase parts of SPI flash"
