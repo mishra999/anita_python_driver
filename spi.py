@@ -123,7 +123,7 @@ class SPI:
         datafile = open(datafilename)
         data = datafile.read()
 	print data 
-	num_eightbit = len(data)/8
+	num_eightbit = int(len(data)/8)
 	eightbit = [] 
         for i in range(0,len(data),8):
 	    eightbit.append(data[i:i+8])
