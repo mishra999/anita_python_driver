@@ -131,39 +131,50 @@ class SPI:
 	print eightbit
 	for i in range(len(eightbit)-1):
 	    eightbit[i] = int(("0b" + eightbit[i]),2)
+	eightbit = eightbit[:-1]
 	print "eightbit turned into ints is:"
 	print eightbit
-        #self.page_program(address, eightbit)          
+        self.page_program(address, eightbit)          
        
         
         
-    def page_program(self, address, data = []):
+    def page_program(self, address, data_write = []):
         print "Inside function page_program: command to program the SPI flash" 
 	self.write_enable()
 	print hex(address)
-	data.append((address >> 24) & 0xFF)
-	data.append((address >> 16) & 0xFF)
- 	data.append((address >> 8) & 0xFF)
-	data.append(address & 0xFF)
-	self.command(self.cmd["4PP"], 0, 0, data)
+	data_write.append((address >> 24) & 0xFF)
+	data_write.append((address >> 16) & 0xFF)
+ 	data_write.append((address >> 8) & 0xFF)
+	data_write.append(address & 0xFF)
+	#self.command(self.cmd["4PP"], 0, 0, data)
 
-    ''' 
+        '''     
 	for i in range(256):
-	    data.append(0x00)
-	if (len(data)-4) != 256:
+	    data_write.append(0x00)
+	''' 
+       	if (len(data_write)-4) != 256:
 	    print "something wrong with data length!"
-	    print data
+	    print "___________________I'M QUITTING!!!_________________________"
+	    print "-----------------------------------------------------------"
+	    print "Here's the bad data:"
+	    print data_write
+	    del data_write
+	    return
 	else:
-	    print len(data)
-            print data
+	    print len(data_write)
+            print data_write
        
-        length=len(data)
-	hex_data= []
-	for i in range(0,length):
-	    hex_data.append(hex(data[i]))
-	print hex_data
 
-     '''
+	self.command(self.cmd["4PP"],0,0,data_write)
+        del data_write
+	print "I completed the page program"
+       # length=len(data)
+	#hex_data= []
+	#for i in range(0,length):
+	#    hex_data.append(hex(data[i]))
+	#print hex_data
+
+     
 
     def erase(self, address): 
 	print "Inside function erase: command sector erase or SE to erase parts of SPI flash"
