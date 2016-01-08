@@ -129,9 +129,13 @@ class SPI:
 	    eightbit.append(data[i:i+8])
 	print "eightbit is:"
 	print eightbit
-	for i in range(len(eightbit)-1):
+	if "\n" in eightbit:
+	    print "found EOL"
+	    eightbit = eightbit[:-1] #assuming EOL character is the last element of eightbit array
+	else:
+	    print "did not find EOL"
+	for i in range(len(eightbit)):
 	    eightbit[i] = int(("0b" + eightbit[i]),2)
-	eightbit = eightbit[:-1]
 	print "eightbit turned into ints is:"
 	print eightbit
 	print len(eightbit)
