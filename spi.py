@@ -143,19 +143,11 @@ class SPI:
         print "Inside function page_program: command to program the SPI flash" 
 	self.write_enable()
 	print hex(address)
-	#data_write.append((address >> 24) & 0xFF)
-	#data_write.append((address >> 16) & 0xFF)
- 	#data_write.append((address >> 8) & 0xFF)
-	#data_write.append(address & 0xFF)
-	#data_write.insert(0,((address>>24)& 0xFF))
-	#data_write.insert(0,((address>>16)& 0xFF))
-	#data_write.insert(0,((address>>8) & 0xFF))
 	data_write.insert(0,(address & 0xFF))
 	data_write.insert(0,((address>>8) & 0xFF))
 	data_write.insert(0,((address>>16) & 0xFF))
 	data_write.insert(0,((address>>24) & 0xFF))
 	self.command(self.cmd["4PP"],0,0,data_write)
-        #del data_write
 	print data_write
 	print "I completed the page program"
      
