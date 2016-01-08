@@ -134,6 +134,7 @@ class SPI:
 	eightbit = eightbit[:-1]
 	print "eightbit turned into ints is:"
 	print eightbit
+	print len(eightbit)
         self.page_program(address, eightbit)          
        
         
@@ -142,38 +143,21 @@ class SPI:
         print "Inside function page_program: command to program the SPI flash" 
 	self.write_enable()
 	print hex(address)
-	data_write.append((address >> 24) & 0xFF)
-	data_write.append((address >> 16) & 0xFF)
- 	data_write.append((address >> 8) & 0xFF)
-	data_write.append(address & 0xFF)
-	#self.command(self.cmd["4PP"], 0, 0, data)
-
-        '''     
-	for i in range(256):
-	    data_write.append(0x00)
-	''' 
-       	if (len(data_write)-4) != 256:
-	    print "something wrong with data length!"
-	    print "___________________I'M QUITTING!!!_________________________"
-	    print "-----------------------------------------------------------"
-	    print "Here's the bad data:"
-	    print data_write
-	    del data_write
-	    return
-	else:
-	    print len(data_write)
-            print data_write
-       
-
+	#data_write.append((address >> 24) & 0xFF)
+	#data_write.append((address >> 16) & 0xFF)
+ 	#data_write.append((address >> 8) & 0xFF)
+	#data_write.append(address & 0xFF)
+	#data_write.insert(0,((address>>24)& 0xFF))
+	#data_write.insert(0,((address>>16)& 0xFF))
+	#data_write.insert(0,((address>>8) & 0xFF))
+	data_write.insert(0,(address & 0xFF))
+	data_write.insert(0,((address>>8) & 0xFF))
+	data_write.insert(0,((address>>16) & 0xFF))
+	data_write.insert(0,((address>>24) & 0xFF))
 	self.command(self.cmd["4PP"],0,0,data_write)
-        del data_write
+        #del data_write
+	print data_write
 	print "I completed the page program"
-       # length=len(data)
-	#hex_data= []
-	#for i in range(0,length):
-	#    hex_data.append(hex(data[i]))
-	#print hex_data
-
      
 
     def erase(self, address): 
