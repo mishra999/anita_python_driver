@@ -2,6 +2,7 @@ import ocpci
 import struct
 import sys
 import time
+import hexfile
 from bf import * 
 
 
@@ -52,7 +53,13 @@ class SPI:
         val[3] = 0;
         val[2] = 0;
         self.dev.write(self.base + self.map['SPCR'], int(val))
-
+        res = self.command(self.cmd['RES'], 3, 1)
+        self.electronic_signature = res[0]
+        res = self.command(self.cmd['RDID'], 0, 3)
+        self.manufacturer_id = res[0]
+        self.memory_type = res[1]
+        self.memory_capacity = res[2]        
+        
     def command(self, command, dummy_bytes, num_read_bytes, data_in = [] ):
         self.dev.spi_cs(self.device, 1)
         self.dev.write(self.base + self.map['SPDR'], command)
@@ -74,107 +81,174 @@ class SPI:
             rdata.append(self.dev.read(self.base + self.map['SPDR']))
         self.dev.spi_cs(self.device, 0)    
         return rdata
-	
 
-    def test_wcol(self, size):
-	print "Inside function test_wcol: function to test if we are trying to send too many bytes at a time" 
-	self.write_enable()
-	data = [] 
-	for i in range(size):
-	    data.append(0x00) 
-	self.command(self.cmd['RES'],0,0,data)
-	
+    def status(self):
+        res = self.command(self.cmd['RDSR'], 0, 1)
+        return res[0]
     
+
     def identify(self):
-        res = self.command(self.cmd['RES'], 3, 1)
-        print "Electronic Signature: 0x%x" % res[0]
-        res = self.command(self.cmd['RDID'], 0, 3)
-        print "Manufacturer ID: 0x%x" % res[0]
-        print "self.device ID: 0x%x 0x%x" % (res[1], res[2])
+        print "Electronic Signature: 0x%x" % self.electronic_signature
+        print "Manufacturer ID: 0x%x" % self.manufacturer_id
+        print "Memory Type: 0x%x Memory Capacity: 0x%x" % (self.memory_type, self.memory_capacity)
+#        res = self.command(self.cmd['RES'], 3, 1)
+#        print "Electronic Signature: 0x%x" % res[0]
+#        res = self.command(self.cmd['RDID'], 0, 3)
+#        print "Manufacturer ID: 0x%x" % res[0]
+#        print "self.device ID: 0x%x 0x%x" % (res[1], res[2])
 
 
     def read(self, address, length):
-        data_in = []
-        data_in.append((address >> 24) & 0xFF)
-        data_in.append((address >> 16) & 0xFF)
-	data_in.append((address >> 8) & 0xFF)
-        data_in.append(address & 0xFF)
-        result = self.command(self.cmd['4READ'], 0, length, data_in)
+        if self.memory_capacity > 0x18:
+            data_in = []
+            data_in.append((address >> 24) & 0xFF)
+            data_in.append((address >> 16) & 0xFF)
+            data_in.append((address >> 8) & 0xFF)
+            data_in.append(address & 0xFF)
+            result = self.command(self.cmd['4READ'], 0, length, data_in)
+        else:
+            data_in = []
+            data_in.append((address >> 16) & 0xFF)
+            data_in.append((address >> 8) & 0xFF)
+            data_in.append(address & 0xFF)
+            result = self.command(self.cmd['3READ'], 0, length, data_in)
 	return result 
 
 	
     def write_enable(self):
-        print "Inside function write_enable: command to make SPI flash write enabled" 
         enable = self.command(self.cmd["WREN"], 0, 0)
-        return enable
-        
-        
+        trials = 0
+        while trials < 10:
+            res = self.status()
+            if not res & 0x2:
+                trials = trials + 1
+            else:
+                print "Write enable succeeded (%d)." % res
+                break
+
     def write_disable(self):
-        print "Inside function write_disable: command to make SPI flash write disabled" 
         disable = self.command(self.cmd["WRDI"], 0, 0)
-        return disable
+        res = self.status()
+        if res & 0x2:
+            print "Write disable failed (%d)!" % res
 
+    def program_mcs(self, filename):
+        f = hexfile.load(filename)
+        # Figure out what sectors we need to erase.
+        sector_size = 0
+        total_size = 0
+        page_size = 256
+        if self.memory_capacity == 0x18:
+            sector_size = 256*1024
+            total_size = 16*1024*1024
+        elif self.memory_capacity == 0x19:
+            sector_size = 256*1024
+            total_size = 32*1024*1024
+        else:
+            print "Don't know how to program flash with capacity %d" % self.memory_capacity
+            return
+        erase_sectors = [0]*(total_size/sector_size)
+        sector_list = []
+        for seg in f.segments:
+            print "Segment %s starts at %d" % (seg, seg.start_address)
+            start_sector = seg.start_address/sector_size
+            print "This is sector %d" % start_sector
+            if erase_sectors[start_sector] == 0:
+                erase_sectors[start_sector] = 1
+                sector_list.append(start_sector)
+            end_address = seg.end_address
+            end_sector = start_sector + 1
+            while end_sector*sector_size < seg.end_address:
+                if erase_sectors[end_sector] == 0:
+                    erase_sectors[end_sector] = 1
+                    sector_list.append(end_sector)
+                end_sector = end_sector + 1
+        for erase in sector_list:
+            print "I think I should erase sector %d" % erase
+            self.erase(erase*sector_size)
+        for seg in f.segments:
+            start = seg.start_address
+            end = 0
+            while start < seg.size:
+                end = start + page_size
+                if end > seg.end_address:
+                    end = seg.end_address
+                data = seg[start:end].data
+                print "Programming %d-%d" % (start, end)
+                self.page_program(start, data)
+                start = end
+                
+        self.write_disable()
+        print "Complete!"
 
-    def program(self, address, datafilename):
-        print "Inside function program"
-        self.write_enable()
-        if type(datafilename) != str:
-            return "data filename must be a string!"   
-        datafile = open(datafilename)
-        data = datafile.read()
-	print data 
-	num_eightbit = int(len(data)/8)
-	eightbit = [] 
-        for i in range(0,len(data),8):
-	    eightbit.append(data[i:i+8])
-	print "eightbit is:"
-	print eightbit
-	if "\n" in eightbit:
-	    print "found EOL"
-	    eightbit = eightbit[:-1] #assuming EOL character is the last element of eightbit array
-	else:
-	    print "did not find EOL"
-	for i in range(len(eightbit)):
-	    eightbit[i] = int(("0b" + eightbit[i]),2)
-	print "eightbit turned into ints is:"
-	print eightbit
-	print len(eightbit)
-        self.page_program(address, eightbit)          
-       
-        
-        
     def page_program(self, address, data_write = []):
-        print "Inside function page_program: command to program the SPI flash" 
-	self.write_enable()
-	print hex(address)
-	data_write.insert(0,(address & 0xFF))
-	data_write.insert(0,((address>>8) & 0xFF))
-	data_write.insert(0,((address>>16) & 0xFF))
-	data_write.insert(0,((address>>24) & 0xFF))
-	self.command(self.cmd["4PP"],0,0,data_write)
-	print data_write
-	print "I completed the page program"
-     
+        self.write_enable()
+        data_write.insert(0,(address & 0xFF))
+        data_write.insert(0,((address>>8) & 0xFF))
+        data_write.insert(0,((address>>16) & 0xFF))
+        if self.memory_capacity > 0x18:
+            data_write.insert(0,((address>>24) & 0xFF))
+            print "Using 4 byte address to write %d bytes to %d" % (len(data_write), address)
+            self.command(self.cmd["4PP"],0,0,data_write)
+        else:
+            print "Using 3 byte address to write %d bytes to %d" % (len(data_write), address)
+            self.command(self.cmd["3PP"],0,0,data_write)
+        res = self.status()
+        print "Checking for program begin..."
+        trials = 0
+        while trials < 10:
+            res = self.status()
+            if res & 0x1:
+                break
+            trials = trials + 1
+        print "Programming has begin. Checking for program end..."
+        trials = 0
+        while res & 0x1:
+            res = self.status()
+            trials = trials + 1
+        print "Program complete after %d trials." % trials
 
     def erase(self, address): 
-	print "Inside function erase: command sector erase or SE to erase parts of SPI flash"
 	self.write_enable()
-	data = []
-	data.append((address >> 24) & 0xFF)
-	data.append((address >> 16) & 0xFF)
-	data.append((address >> 8) & 0xFF)
-	data.append((address & 0xFF))
-	erase = self.command(self.cmd["4SE"], 0, 0, data)
-
+        if self.memory_capacity > 0x18:
+            data = []
+            data.append((address >> 24) & 0xFF)
+            data.append((address >> 16) & 0xFF)
+            data.append((address >> 8) & 0xFF)
+            data.append((address & 0xFF))
+            erase = self.command(self.cmd["4SE"], 0, 0, data)
+        else:
+            data = []
+            data.append((address>>16) & 0xFF)
+            data.append((address>>8) & 0xFF)
+            data.append((address & 0xFF))
+            erase = self.command(self.cmd["3SE"], 0, 0, data)
+        res = self.status()
+        print "Checking for erase start..."
+        trials = 0
+        while trials < 10:
+            res = self.status()
+            if res & 0x1:
+                break
+        print "Erase started. Waiting for erase complete..."
+        trials = 0
+        while res & 0x1:
+            res = self.status()
+            trials = trials + 1
+        print "Erase complete after %d trials." % trials
 
     def write_bank_address(self, bank):
-	print "Inside function write_bank_address that writes the bank byte to 0 (3 byte) or 1 (4 byte)" 
+        if self.memory_capacity > 0x18:
+            return
 	bank_write = self.command(self.cmd["BRWR"], 0, 0, [ bank ])
 	return bank_write 	
 	
 
     def read_bank_address(self):
-	print "Inside function read_bank_address that reads the bank byte" 
+        if self.memory_capacity > 0x18:
+            res = []
+            res.append(0)
+            return res
 	bank_read = self.command(self.cmd["BRRD"], 0, 1)
 	return bank_read
 	
