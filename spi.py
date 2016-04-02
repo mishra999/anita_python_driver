@@ -58,7 +58,7 @@ class SPI:
         res = self.command(self.cmd['RDID'], 0, 3)
         self.manufacturer_id = res[0]
         self.memory_type = res[1]
-        self.memory_capacity = res[2]        
+        self.memory_capacity = 2**res[2]        
         
     def command(self, command, dummy_bytes, num_read_bytes, data_in = [] ):
         self.dev.spi_cs(self.device, 1)
@@ -90,7 +90,7 @@ class SPI:
     def identify(self):
         print "Electronic Signature: 0x%x" % self.electronic_signature
         print "Manufacturer ID: 0x%x" % self.manufacturer_id
-        print "Memory Type: 0x%x Memory Capacity: 0x%x" % (self.memory_type, self.memory_capacity)
+        print "Memory Type: 0x%x Memory Capacity: %d bytes" % (self.memory_type, self.memory_capacity)
 #        res = self.command(self.cmd['RES'], 3, 1)
 #        print "Electronic Signature: 0x%x" % res[0]
 #        res = self.command(self.cmd['RDID'], 0, 3)
@@ -99,7 +99,7 @@ class SPI:
 
 
     def read(self, address, length):
-        if self.memory_capacity > 0x18:
+        if self.memory_capacity > 2**24:
             data_in = []
             data_in.append((address >> 24) & 0xFF)
             data_in.append((address >> 16) & 0xFF)
@@ -138,12 +138,15 @@ class SPI:
         sector_size = 0
         total_size = 0
         page_size = 256
-        if self.memory_capacity == 0x18:
+        if self.memory_capacity == 2**24:
             sector_size = 256*1024
-            total_size = 16*1024*1024
-        elif self.memory_capacity == 0x19:
+            total_size = self.memory_capacity
+        elif self.memory_capacity == 2**25:
             sector_size = 256*1024
-            total_size = 32*1024*1024
+            total_size = self.memory_capacity
+        elif self.memory_capacity == 2**20:
+            sector_size = 64*1024
+            total_size = self.memory_capacity
         else:
             print "Don't know how to program flash with capacity %d" % self.memory_capacity
             return
@@ -186,7 +189,7 @@ class SPI:
         data_write.insert(0,(address & 0xFF))
         data_write.insert(0,((address>>8) & 0xFF))
         data_write.insert(0,((address>>16) & 0xFF))
-        if self.memory_capacity > 0x18:
+        if self.memory_capacity > 2**24:
             data_write.insert(0,((address>>24) & 0xFF))
             print "Using 4 byte address to write %d bytes to %d" % (len(data_write), address)
             self.command(self.cmd["4PP"],0,0,data_write)
@@ -210,7 +213,7 @@ class SPI:
 
     def erase(self, address): 
 	self.write_enable()
-        if self.memory_capacity > 0x18:
+        if self.memory_capacity > 2**24:
             data = []
             data.append((address >> 24) & 0xFF)
             data.append((address >> 16) & 0xFF)
@@ -238,14 +241,14 @@ class SPI:
         print "Erase complete after %d trials." % trials
 
     def write_bank_address(self, bank):
-        if self.memory_capacity > 0x18:
+        if self.memory_capacity > 2**24:
             return
 	bank_write = self.command(self.cmd["BRWR"], 0, 0, [ bank ])
 	return bank_write 	
 	
 
     def read_bank_address(self):
-        if self.memory_capacity > 0x18:
+        if self.memory_capacity > 2**24:
             res = []
             res.append(0)
             return res
