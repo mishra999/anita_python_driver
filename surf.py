@@ -21,6 +21,7 @@ class LAB4_Controller:
 	def __init__(self, dev, base):
 		self.dev = dev
 		self.base = base
+		self.pb = picoblaze.PicoBlaze(self, self.map['pb'])
 
 	def start(self):
 		ctrl = bf(self.read(self.map['CONTROL']))
@@ -38,12 +39,12 @@ class LAB4_Controller:
 
 	def force_trigger(self):
 		self.write(self.map['TRIGGER'], 2)
-
-    def read(self, addr):
-        return self.dev.read(addr + self.base)
+	
+	def read(self, addr):
+		return self.dev.read(addr + self.base)
     
-    def write(self, addr, value):
-        self.dev.write(addr + self.base, value)
+	def write(self, addr, value):
+		self.dev.write(addr + self.base, value)
 
 	def l4reg(self, lab, addr, value):
 		ctrl = bf(self.read(self.map['CONTROL']))
@@ -57,7 +58,9 @@ class LAB4_Controller:
 		user[11:0] = value
 		user[23:12] = addr
 		user[27:24] = lab
-		self.write(self.map['L4REG']), int(user))
+		user[31] = 1
+		print 'Going to write 0x%X' % user
+		self.write(self.map['L4REG'], int(user))
 		while not user[31]:
 			user = bf(self.read(self.map['L4REG']))
 					        
@@ -73,12 +76,14 @@ class SURF(ocpci.Device):
             'PLLCTRL'      		: 0x00020,      ## this is a clock, PLL = phase locked loop 
             'SPICS'             : 0x00024,      ## this is the spiss variable in the firmware doc 
             'SPI_BASE'          : 0x00030,
+	    'LAB4_CTRL_BASE'    : 0x10000,	    
            }
 
     def __init__(self, path="/sys/class/uio/uio0"):
         ocpci.Device.__init__(self, path, 1*1024*1024)
         self.spi = spi.SPI(self, self.map['SPI_BASE'])
-		
+	self.labc = LAB4_Controller(self, self.map['LAB4_CTRL_BASE'])
+	
     def __repr__(self):
         return "<SURF at %s>" % self.path
 
