@@ -191,25 +191,20 @@ class SPI:
         data_write.insert(0,((address>>16) & 0xFF))
         if self.memory_capacity > 2**24:
             data_write.insert(0,((address>>24) & 0xFF))
-            print "Using 4 byte address to write %d bytes to %d" % (len(data_write), address)
             self.command(self.cmd["4PP"],0,0,data_write)
         else:
-            print "Using 3 byte address to write %d bytes to %d" % (len(data_write), address)
             self.command(self.cmd["3PP"],0,0,data_write)
         res = self.status()
-        print "Checking for program begin..."
         trials = 0
         while trials < 10:
             res = self.status()
             if res & 0x1:
                 break
             trials = trials + 1
-        print "Programming has begin. Checking for program end..."
         trials = 0
         while res & 0x1:
             res = self.status()
             trials = trials + 1
-        print "Program complete after %d trials." % trials
 
     def erase(self, address): 
 	self.write_enable()
