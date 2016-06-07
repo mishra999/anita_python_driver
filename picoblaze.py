@@ -48,62 +48,14 @@ class PicoBlaze:
             self.dev.write(self.addr, int(val))
             val = bf(self.dev.read(self.addr))
             self.dev.write(self.addr, int(oldval))
-        return "%3.3x: %s [%s]" % (val[27:18],self.decode(val[17:0]),"RESET" if val[31] else "RUNNIclass PicoBlaze:
-    instr0_map = { (0x00>>1) : "LOAD",
-                   (0x16>>1) : "STAR",
-                   (0x02>>1) : "AND",
-                   (0x04>>1) : "OR",
-                   (0x06>>1) : "XOR",
-                   (0x10>>1) : "ADD",
-                   (0x12>>1) : "ADDCY",
-                   (0x18>>1) : "SUB",
-                   (0x1A>>1) : "SUBCY",
-                   (0x0C>>1) : "TEST",
-                   (0x0E>>1) : "TESTCY",
-                   (0x1C>>1) : "COMPARE",
-                   (0x1E>>1) : "COMPARECY" }
-    instr1_map = { 0x06 : "SL0",
-                   0x07 : "SL1",
-                   0x04 : "SLX",
-                   0x00 : "SLA",
-                   0x02 : "RL",
-                   0x0E : "SR0",
-                   0x0F : "SR1",
-                   0x0A : "SRX",
-                   0x08 : "SRA",
-                   0x0C : "RR",
-                   0x80 : "HWBUILD"}
-    instr2_map = { (0x08>>1) : "INPUT",
-                   (0x2C>>1) : "OUTPUT",
-                   (0x2E>>1) : "STORE",
-                   (0x0A>>1) : "FETCH" }
-    def __init__(self, dev, addr):
-        self.dev = dev
-        self.addr = addr
-
-    def __repr__(self):
-        return "<PicoBlaze in dev:%r at 0x%8.8x>" % (self.dev, self.addr)
-
-    def __str__(self):
-        return "PicoBlaze (@%8.8x)" % self.addr
-
-    def read(self, addr = None):
-        val = bf(self.dev.read(self.addr))
-        oldval = val
-        if addr is not None:
-            val[27:18] = addr
-            val[30] = 0
-            self.dev.write(self.addr, int(val))
-            val = bf(self.dev.read(self.addr))
-            self.dev.write(self.addr, int(oldval))
         return "%3.3x: %s [%s]" % (val[27:18],self.decode(val[17:0]),"RESET" if val[31] else "RUNNING")
 
-	def reset(self):
+    def reset(self):
         oldctrl = bf(self.dev.read(self.addr))
-		oldctrl[31] = 1
-		self.dev.write(self.addr, int(oldctrl))
-		oldctrl[31] = 0
-		self.dev.write(self.addr, int(oldctrl))		
+        oldctrl[31] = 1
+        self.dev.write(self.addr, int(oldctrl))
+        oldctrl[31] = 0
+        self.dev.write(self.addr, int(oldctrl))		
 
     def program(self, path):
         oldctrl = bf(self.dev.read(self.addr))
