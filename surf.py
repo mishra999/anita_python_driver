@@ -7,15 +7,15 @@ import spi
 import picoblaze
 
 class LAB4_Controller:
-	map = { 'CONTROL'			: 0x00000,
-			'SHIFTPRESCALE'		: 0x00004,
-			'RDOUTPRESCALE'		: 0x00008,
-			'WILKDELAY'			: 0x0000C,
-			'WILKMAX'			: 0x00010,
-			'TPCTRL'			: 0x00014,
-			'L4REG'				: 0x00018,
-			'TRIGGER'			: 0x00054,
-			'pb'				: 0x0007C,
+        map = { 'CONTROL'			: 0x00000,
+                'SHIFTPRESCALE'		        : 0x00004,
+		'RDOUTPRESCALE'		        : 0x00008,
+		'WILKDELAY'			: 0x0000C,
+		'WILKMAX'			: 0x00010,
+		'TPCTRL'			: 0x00014,
+		'L4REG'				: 0x00018,
+		'TRIGGER'			: 0x00054,
+		'pb'				: 0x0007C,
 		   }
 
 	def __init__(self, dev, base):
@@ -44,8 +44,8 @@ class LAB4_Controller:
 		return self.dev.read(addr + self.base)
     
 	def write(self, addr, value):
-		self.dev.write(addr + self.base, value)
-
+		self.dev.write(addr + self.base, value)                
+                
 	def l4reg(self, lab, addr, value):
 		ctrl = bf(self.read(self.map['CONTROL']))
 		if ctrl[2]:
@@ -62,7 +62,22 @@ class LAB4_Controller:
 		print 'Going to write 0x%X' % user
 		self.write(self.map['L4REG'], int(user))
 		while not user[31]:
-			user = bf(self.read(self.map['L4REG']))
+                        user = bf(self.read(self.map['L4REG']))
+
+        def default(self, lab4=15):
+                self.l4reg(lab4, 0,1024)     #PCLK-1=0 : Vboot 
+                self.l4reg(lab4, 1,1024)     #PCLK-1=1 : Vbsx
+                self.l4reg(lab4, 2,1024)     #PCLK-1=2 : VanN
+                self.l4reg(lab4, 3,1900)     #PCLK-1=3 : VadjN
+                self.l4reg(lab4, 4,1024)     #PCLK-1=4 : Vbs 
+                self.l4reg(lab4, 5,1100)     #PCLK-1=5 : Vbias 
+                self.l4reg(lab4, 6,950)      #PCLK-1=6 : Vbias2 
+                self.l4reg(lab4, 7,1024)     #PCLK-1=7 : CMPbias 
+                self.l4reg(lab4, 8,2700)     #PCLK-1=8 : VadjP 
+                self.l4reg(lab4, 9,1000)     #PCLK-1=9 : Qbias 
+                self.l4reg(lab4, 10,2780)    #PCLK-1=10 : ISEL 
+                self.l4reg(lab4, 11,4090)    #PCLK-1=11 : VtrimT 
+              
 					        
 class SURF(ocpci.Device):
     map = { 'IDENT'             : 0x00000,
