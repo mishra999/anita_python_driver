@@ -65,6 +65,7 @@ class LAB4_Controller:
                         user = bf(self.read(self.map['L4REG']))
 
         def default(self, lab4=15):
+                '''DAC default values'''
                 self.l4reg(lab4, 0,1024)     #PCLK-1=0 : Vboot 
                 self.l4reg(lab4, 1,1024)     #PCLK-1=1 : Vbsx
                 self.l4reg(lab4, 2,1024)     #PCLK-1=2 : VanN
@@ -77,7 +78,23 @@ class LAB4_Controller:
                 self.l4reg(lab4, 9,1000)     #PCLK-1=9 : Qbias 
                 self.l4reg(lab4, 10,2780)    #PCLK-1=10 : ISEL 
                 self.l4reg(lab4, 11,4090)    #PCLK-1=11 : VtrimT 
-              
+
+                '''DLL default values'''
+                for i in range (0, 128):     #PCLK-1=<127:254> : dTrim DACS
+                        self.l4reg(lab4, i+127 1500)
+                        
+                self.l4reg(lab4, 255, 95)      #PCLK-1=255 : wr_strb_le 
+                self.l4reg(lab4, 256, 17)      #PCLK-1=256 : wr_strb_fe 
+                self.l4reg(lab4, 257, 120)     #PCLK-1=257 : sstoutfb 
+                self.l4reg(lab4, 259, 38)      #PCLK-1=259 : tmk_s1_le 
+                self.l4reg(lab4, 260, 86)      #PCLK-1=260 : tmk_s1_fe 
+                self.l4reg(lab4, 261, 120)     #PCLK-1=261 : tmk_s2_le 
+                self.l4reg(lab4, 262, 20)      #PCLK-1=262 : tmk_s2_fe
+                self.l4reg(lab4, 263, 45)      #PCLK-1=263 : phase_le
+                self.l4reg(lab4, 264, 85)      #PCLK-1=264 : phase_fe
+                self.l4reg(lab4, 265, 92)      #PCLK-1=265 : sspin_le
+                self.l4reg(lab4, 266, 10)      #PCLK-1=266 : sspin_fe
+ 
 					        
 class SURF(ocpci.Device):
     map = { 'IDENT'             : 0x00000,
