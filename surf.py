@@ -80,20 +80,21 @@ class LAB4_Controller:
                 self.l4reg(lab4, 11, 4090)    #PCLK-1=11 : VtrimT 
 
                 '''DLL default values'''
-                for i in range (0, 128):     #PCLK-1=<127:254> : dTrim DACS
+                for i in range (0, 128):     #PCLK-1=<255:383> : dTrim DACS
                         self.l4reg(lab4, i+256, 1500)
                         
-                self.l4reg(lab4, 384, 95)      #PCLK-1=255 : wr_strb_le 
-                self.l4reg(lab4, 385, 17)      #PCLK-1=256 : wr_strb_fe 
-                self.l4reg(lab4, 386, 120)     #PCLK-1=257 : sstoutfb 
-                self.l4reg(lab4, 387, 38)      #PCLK-1=259 : tmk_s1_le 
-                self.l4reg(lab4, 388, 86)      #PCLK-1=260 : tmk_s1_fe 
-                self.l4reg(lab4, 389, 120)     #PCLK-1=261 : tmk_s2_le 
-                self.l4reg(lab4, 390, 20)      #PCLK-1=262 : tmk_s2_fe
-                self.l4reg(lab4, 391, 45)      #PCLK-1=263 : phase_le
-                self.l4reg(lab4, 392, 85)      #PCLK-1=264 : phase_fe
-                self.l4reg(lab4, 393, 92)      #PCLK-1=265 : sspin_le
-                self.l4reg(lab4, 394, 10)      #PCLK-1=266 : sspin_fe
+                self.l4reg(lab4, 384, 95)      #PCLK-1=384 : wr_strb_le 
+                self.l4reg(lab4, 385, 17)      #PCLK-1=385 : wr_strb_fe 
+                self.l4reg(lab4, 386, 120)     #PCLK-1=386 : sstoutfb 
+                self.l4reg(lab4, 387, 0)       #PCLK-1=387 : wr_addr_sync 
+                self.l4ref(lab4, 388, 38)      #PCLK-1=388 : tmk_s1_le
+                self.l4reg(lab4, 389, 86)      #PCLK-1=388 : tmk_s1_fe 
+                self.l4reg(lab4, 390, 120)     #PCLK-1=261 : tmk_s2_le 
+                self.l4reg(lab4, 391, 20)      #PCLK-1=262 : tmk_s2_fe
+                self.l4reg(lab4, 392, 45)      #PCLK-1=263 : phase_le
+                self.l4reg(lab4, 393, 85)      #PCLK-1=264 : phase_fe
+                self.l4reg(lab4, 394, 92)      #PCLK-1=265 : sspin_le
+                self.l4reg(lab4, 395, 10)      #PCLK-1=266 : sspin_fe
  
 					        
 class SURF(ocpci.Device):
