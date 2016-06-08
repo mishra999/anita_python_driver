@@ -42,7 +42,7 @@ class LAB4_Controller:
 	def __init__(self, dev, base):
 		self.dev = dev
 		self.base = base
-		self.pb = picoblaze.PicoBlaze(self, self.map['pb'])
+                self.pb = picoblaze.PicoBlaze(self, self.map['pb'])
         
         def set_amon(self, lab, value):
             self.l4reg(lab, 12, value)
@@ -50,9 +50,9 @@ class LAB4_Controller:
         def set_tmon(self, lab, value):
             self.l4reg(lab, 396, value)
             
-        def clr_phase(self, lab, value):
-            self.l4reg(lab, 396, self.tmon['PHASE']+128)
-            self.l4reg(lab, 396, self.tmon['PHASE'])
+        def clr_phase(self, lab):
+            self.l4reg(lab, 396, self.tmon['PHAB']+128)
+            self.l4reg(lab, 396, self.tmon['PHAB'])
             
 	def start(self):
 		ctrl = bf(self.read(self.map['CONTROL']))
@@ -62,7 +62,7 @@ class LAB4_Controller:
 			ctrl = bf(self.read(self.map['CONTROL']))
 
 	def stop(self):
-		ctrl = bf(self.read(self.map['CONTROL']))
+ 		ctrl = bf(self.read(self.map['CONTROL']))
 		while ctrl[2]:
 			ctrl[1] = 0
 			self.write(self.map['CONTROL'], int(ctrl))
@@ -97,35 +97,35 @@ class LAB4_Controller:
 
         def default(self, lab4=15):
                 '''DAC default values'''
-                self.l4reg(lab4, 0, 1024)     #PCLK-1=0 : Vboot 
-                self.l4reg(lab4, 1, 1024)     #PCLK-1=1 : Vbsx
-                self.l4reg(lab4, 2, 1024)     #PCLK-1=2 : VanN
-                self.l4reg(lab4, 3, 1900)     #PCLK-1=3 : VadjN
-                self.l4reg(lab4, 4, 1024)     #PCLK-1=4 : Vbs 
+                self.l4reg(lab4, 0, 1024)      #PCLK-1=0 : Vboot 
+                self.l4reg(lab4, 1, 1024)      #PCLK-1=1 : Vbsx
+                self.l4reg(lab4, 2, 1024)      #PCLK-1=2 : VanN
+                self.l4reg(lab4, 3, 1900)      #PCLK-1=3 : VadjN
+                self.l4reg(lab4, 4, 1024)      #PCLK-1=4 : Vbs 
                 self.l4reg(lab4, 5, 1100)      #PCLK-1=5 : Vbias 
-                self.l4reg(lab4, 6, 950)      #PCLK-1=6 : Vbias2 
-                self.l4reg(lab4, 7, 1024)     #PCLK-1=7 : CMPbias 
-                self.l4reg(lab4, 8, 2700)     #PCLK-1=8 : VadjP 
-                self.l4reg(lab4, 9, 1000)     #PCLK-1=9 : Qbias 
-                self.l4reg(lab4, 10, 2780)    #PCLK-1=10 : ISEL 
-                self.l4reg(lab4, 11, 4090)    #PCLK-1=11 : VtrimT 
+                self.l4reg(lab4, 6, 950)       #PCLK-1=6 : Vbias2 
+                self.l4reg(lab4, 7, 1024)      #PCLK-1=7 : CMPbias 
+                self.l4reg(lab4, 8, 2700)      #PCLK-1=8 : VadjP 
+                self.l4reg(lab4, 9, 1000)      #PCLK-1=9 : Qbias 
+                self.l4reg(lab4, 10, 2780)     #PCLK-1=10 : ISEL 
+                self.l4reg(lab4, 11, 4090)     #PCLK-1=11 : VtrimT 
 
                 '''DLL default values'''
-                for i in range (0, 128):     #PCLK-1=<255:383> : dTrim DACS
+                for i in range (0, 128):       #PCLK-1=<255:383> : dTrim DACS
                         self.l4reg(lab4, i+256, 1500)
                         
                 self.l4reg(lab4, 384, 95)      #PCLK-1=384 : wr_strb_le 
                 self.l4reg(lab4, 385, 17)      #PCLK-1=385 : wr_strb_fe 
                 self.l4reg(lab4, 386, 120)     #PCLK-1=386 : sstoutfb 
                 self.l4reg(lab4, 387, 0)       #PCLK-1=387 : wr_addr_sync 
-                self.l4reg(lab4, 388, 38)      #PCLK-1=388 : tmk_s1_le
-                self.l4reg(lab4, 389, 86)      #PCLK-1=388 : tmk_s1_fe 
-                self.l4reg(lab4, 390, 120)     #PCLK-1=261 : tmk_s2_le 
-                self.l4reg(lab4, 391, 20)      #PCLK-1=262 : tmk_s2_fe
-                self.l4reg(lab4, 392, 45)      #PCLK-1=263 : phase_le
-                self.l4reg(lab4, 393, 85)      #PCLK-1=264 : phase_fe
-                self.l4reg(lab4, 394, 92)      #PCLK-1=265 : sspin_le
-                self.l4reg(lab4, 395, 10)      #PCLK-1=266 : sspin_fe
+                self.l4reg(lab4, 388, 85)      #PCLK-1=388 : tmk_s1_le  
+                self.l4reg(lab4, 389, 120)     #PCLK-1=389 : tmk_s1_fe 
+                self.l4reg(lab4, 390, 120)     #PCLK-1=390 : tmk_s2_le 
+                self.l4reg(lab4, 391, 20)      #PCLK-1=391 : tmk_s2_fe
+                self.l4reg(lab4, 392, 45)      #PCLK-1=392 : phase_le
+                self.l4reg(lab4, 393, 85)      #PCLK-1=393 : phase_fe
+                self.l4reg(lab4, 394, 92)      #PCLK-1=394 : sspin_le
+                self.l4reg(lab4, 395, 10)      #PCLK-1=395 : sspin_fe
  
 					        
 class SURF(ocpci.Device):
