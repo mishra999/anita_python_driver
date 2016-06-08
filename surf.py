@@ -71,7 +71,7 @@ class LAB4_Controller:
                 self.l4reg(lab4, 2, 1024)     #PCLK-1=2 : VanN
                 self.l4reg(lab4, 3, 1900)     #PCLK-1=3 : VadjN
                 self.l4reg(lab4, 4, 1024)     #PCLK-1=4 : Vbs 
-                self.l4reg(lab4, 5, 1100)     #PCLK-1=5 : Vbias 
+                self.l4reg(lab4, 5, 1100)      #PCLK-1=5 : Vbias 
                 self.l4reg(lab4, 6, 950)      #PCLK-1=6 : Vbias2 
                 self.l4reg(lab4, 7, 1024)     #PCLK-1=7 : CMPbias 
                 self.l4reg(lab4, 8, 2700)     #PCLK-1=8 : VadjP 
@@ -81,19 +81,19 @@ class LAB4_Controller:
 
                 '''DLL default values'''
                 for i in range (0, 128):     #PCLK-1=<127:254> : dTrim DACS
-                        self.l4reg(lab4, i+127, 1500)
+                        self.l4reg(lab4, i+256, 1500)
                         
-                self.l4reg(lab4, 255, 95)      #PCLK-1=255 : wr_strb_le 
-                self.l4reg(lab4, 256, 17)      #PCLK-1=256 : wr_strb_fe 
-                self.l4reg(lab4, 257, 120)     #PCLK-1=257 : sstoutfb 
-                self.l4reg(lab4, 259, 38)      #PCLK-1=259 : tmk_s1_le 
-                self.l4reg(lab4, 260, 86)      #PCLK-1=260 : tmk_s1_fe 
-                self.l4reg(lab4, 261, 120)     #PCLK-1=261 : tmk_s2_le 
-                self.l4reg(lab4, 262, 20)      #PCLK-1=262 : tmk_s2_fe
-                self.l4reg(lab4, 263, 45)      #PCLK-1=263 : phase_le
-                self.l4reg(lab4, 264, 85)      #PCLK-1=264 : phase_fe
-                self.l4reg(lab4, 265, 92)      #PCLK-1=265 : sspin_le
-                self.l4reg(lab4, 266, 10)      #PCLK-1=266 : sspin_fe
+                self.l4reg(lab4, 384, 95)      #PCLK-1=255 : wr_strb_le 
+                self.l4reg(lab4, 385, 17)      #PCLK-1=256 : wr_strb_fe 
+                self.l4reg(lab4, 386, 120)     #PCLK-1=257 : sstoutfb 
+                self.l4reg(lab4, 387, 38)      #PCLK-1=259 : tmk_s1_le 
+                self.l4reg(lab4, 388, 86)      #PCLK-1=260 : tmk_s1_fe 
+                self.l4reg(lab4, 389, 120)     #PCLK-1=261 : tmk_s2_le 
+                self.l4reg(lab4, 390, 20)      #PCLK-1=262 : tmk_s2_fe
+                self.l4reg(lab4, 391, 45)      #PCLK-1=263 : phase_le
+                self.l4reg(lab4, 392, 85)      #PCLK-1=264 : phase_fe
+                self.l4reg(lab4, 393, 92)      #PCLK-1=265 : sspin_le
+                self.l4reg(lab4, 394, 10)      #PCLK-1=266 : sspin_fe
  
 					        
 class SURF(ocpci.Device):
@@ -212,7 +212,7 @@ class SURF(ocpci.Device):
 		# Use FPGA input.
 		clocksel[0] = 0
 		# Enable local clock.
-		clocksel[2] = 1
+		clocksel[2] = 0
 		if pllctrl[1]:
 			# Switch PLL to internal clock. Need to reset it.
 			pllctrl[1] = 0
@@ -227,7 +227,7 @@ class SURF(ocpci.Device):
 		# Use TURF input.
 		clocksel[0] = 1
 		# Disable local clock
-		clocksel[2] = 0
+		clocksel[2] = 1
 		if not pllctrl[1]:
 			# Switch PLL to external clock. Need to reset it.
 			pllctrl[1] = 1
@@ -245,7 +245,7 @@ class SURF(ocpci.Device):
         led = bf(self.read(self.map['LED']))
         print "Clock Status: LAB4 Clock is %s (CLKSEL[1] = %d)" % ("enabled" if clocksel[1] else "not enabled", clocksel[1])
         print "            : LAB4 Driving Clock is %s (CLKSEL[0] = %d)" % ("TURF Clock" if clocksel[0] else "FPGA Clock", clocksel[0])
-	print "            : Local Clock is %s (CLKSEL[2] = %d)" % ("enabled" if clocksel[2] else "not enabled", clocksel[2])
+	print "            : Local Clock is %s (CLKSEL[2] = %d)" % ("enabled" if not clocksel[2] else "not enabled", clocksel[2])
 	print "            : FPGA System Clock PLL is %s (PLLCTRL[0] = %d/PLLCTRL[2] = %d)" % ("powered down" if pllctrl[2] else ("running" if not pllctrl[0] else "in reset"), pllctrl[0], pllctrl[2])
         print "            : FPGA System Clock is %s (PLLCTRL[1] = %d)" % ("TURF Clock" if pllctrl[1] else "Local Clock", pllctrl[1])
         print " Int Status : %8.8x" % (self.read(self.map['INTCSR']) & 0xFFFFFFFF)
