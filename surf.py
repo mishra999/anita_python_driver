@@ -65,6 +65,8 @@ class LAB4_Controller:
 			user = bf(self.read(self.map['L4REG']))
 					        
 class SURF(ocpci.Device):
+    internalClock = 0
+    externalClock = 1
     map = { 'IDENT'             : 0x00000,
             'VERSION'           : 0x00004,
             'INTCSR'    		: 0x00008,
@@ -168,17 +170,52 @@ class SURF(ocpci.Device):
 
     def led_release(self):
         self.write(self.map['LED'],0x00000000)  
-       
+
+    def clock(self, source):
+	clocksel = bf(self.read(self.map['CLKSEL']))
+	pllctrl = bf(self.read(self.map['PLLCTRL']))
+	if source == self.internalClock:
+		# Enable LAB clock.
+		clocksel[1] = 1
+		# Use FPGA input.
+		clocksel[0] = 0
+		# Enable local clock.
+		clocksel[2] = 1
+		if pllctrl[1]:
+			# Switch PLL to internal clock. Need to reset it.
+			pllctrl[1] = 0
+			pllctrl[0] = 1
+			self.write(self.map['PLLCTRL'], int(pllctrl))
+			pllctrl[0] = 0
+			self.write(self.map['PLLCTRL'], int(pllctrl))
+		self.write(self.map['CLKSEL'], int(clocksel))
+	elif source == self.externalClock:
+		# Enable LAB clock.
+		clocksel[1] = 1
+		# Use TURF input.
+		clocksel[0] = 1
+		# Disable local clock
+		clocksel[2] = 0
+		if not pllctrl[1]:
+			# Switch PLL to external clock. Need to reset it.
+			pllctrl[1] = 1
+			pllctrl[0] = 1
+			self.write(self.map['PLLCTRL'], int(pllctrl))
+			pllctrl[0] = 0
+			self.write(self.map['PLLCTRL'], int(pllctrl))
+		self.write(self.map['CLKSEL'], int(clocksel))
 			
     def status(self):
         clocksel = bf(self.read(self.map['CLKSEL']))
-        pullctrl = bf(self.read(self.map['PLLCTRL']))
+        pllctrl = bf(self.read(self.map['PLLCTRL']))
         int_status = bf(self.read(self.map['INTCSR']))
         int_mask = bf(self.read(self.map['INTMASK']))
         led = bf(self.read(self.map['LED']))
         print "Clock Status: LAB4 Clock is %s (CLKSEL[1] = %d)" % ("enabled" if clocksel[1] else "not enabled", clocksel[1])
         print "            : LAB4 Driving Clock is %s (CLKSEL[0] = %d)" % ("TURF Clock" if clocksel[0] else "FPGA Clock", clocksel[0])
-        print "            : FPGA Driving Clock is %s (CLKSEL[2] = %d)" % ("TURF Clock" if clocksel[2] else "Local Clock", clocksel[2])
+	print "            : Local Clock is %s (CLKSEL[2] = %d)" % ("enabled" if clocksel[2] else "not enabled", clocksel[2])
+	print "            : FPGA System Clock PLL is %s (PLLCTRL[0] = %d/PLLCTRL[2] = %d)" % ("powered down" if pllctrl[2] else ("running" if not pllctrl[0] else "in reset"), pllctrl[0], pllctrl[2])
+        print "            : FPGA System Clock is %s (PLLCTRL[1] = %d)" % ("TURF Clock" if pllctrl[1] else "Local Clock", pllctrl[1])
         print " Int Status : %8.8x" % (self.read(self.map['INTCSR']) & 0xFFFFFFFF)
         print " LED        : Internal value %3.3x, Key value %3.3x" % (led[11:0], led[27:16])
         print " Full LED   : %8.8x" % (self.read(self.map['LED']) & 0xFFFFFFFF)
