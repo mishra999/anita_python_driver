@@ -71,14 +71,20 @@ class LAB4_Controller:
 
 	def force_trigger(self):
 		self.write(self.map['TRIGGER'], 2)
-	
+                
+        def run_mode(self, do=True):
+            if do:
+                self.write(self.map['CONTROL'], 2)
+            else:
+                self.write(self.map['CONTROL'], 0)
+                
 	def read(self, addr):
 		return self.dev.read(addr + self.base)
     
 	def write(self, addr, value):
 		self.dev.write(addr + self.base, value)                
                 
-	def l4reg(self, lab, addr, value):
+	def l4reg(self, lab, addr, value, verbose=False):
 		ctrl = bf(self.read(self.map['CONTROL']))
 		if ctrl[2]:
 			print 'LAB4_Controller is running, cannot update registers.'
@@ -91,7 +97,8 @@ class LAB4_Controller:
 		user[23:12] = addr
 		user[27:24] = lab
 		user[31] = 1
-		print 'Going to write 0x%X' % user
+                if verbose:
+                    print 'Going to write 0x%X' % user
 		self.write(self.map['L4REG'], int(user))
 		while not user[31]:
                         user = bf(self.read(self.map['L4REG']))
@@ -110,23 +117,23 @@ class LAB4_Controller:
                 self.l4reg(lab4, 9, 1000)      #PCLK-1=9 : Qbias 
                 self.l4reg(lab4, 10, 2780)     #PCLK-1=10 : ISEL 
                 self.l4reg(lab4, 11, 4090)     #PCLK-1=11 : VtrimT 
-                self.l4reg(lab4, 0, 1024)     #PCLK-1=0 : Vboot 
-                self.l4reg(lab4, 1, 1024)     #PCLK-1=1 : Vbsx
-                self.l4reg(lab4, 2, 1024)     #PCLK-1=2 : VanN
-                self.l4reg(lab4, 3, 1900)     #PCLK-1=3 : VadjN
-                self.l4reg(lab4, 4, 1024)     #PCLK-1=4 : Vbs 
-                self.l4reg(lab4, 5, 1100)     #PCLK-1=5 : Vbias 
-                self.l4reg(lab4, 6, 950)      #PCLK-1=6 : Vbias2 
-                self.l4reg(lab4, 7, 1024)     #PCLK-1=7 : CMPbias 
-                self.l4reg(lab4, 8, 2700)     #PCLK-1=8 : VadjP 
-                self.l4reg(lab4, 9, 1000)     #PCLK-1=9 : Qbias 
-                self.l4reg(lab4, 10, 2780)    #PCLK-1=10 : ISEL 
-                self.l4reg(lab4, 11, 4090)    #PCLK-1=11 : VtrimT 
+                self.l4reg(lab4, 0, 1024)      #PCLK-1=0 : Vboot 
+                self.l4reg(lab4, 1, 1024)      #PCLK-1=1 : Vbsx
+                self.l4reg(lab4, 2, 1024)      #PCLK-1=2 : VanN
+                self.l4reg(lab4, 3, 1900)      #PCLK-1=3 : VadjN
+                self.l4reg(lab4, 4, 1024)      #PCLK-1=4 : Vbs 
+                self.l4reg(lab4, 5, 1100)      #PCLK-1=5 : Vbias 
+                self.l4reg(lab4, 6, 950)       #PCLK-1=6 : Vbias2 
+                self.l4reg(lab4, 7, 1024)      #PCLK-1=7 : CMPbias 
+                self.l4reg(lab4, 8, 2700)      #PCLK-1=8 : VadjP 
+                self.l4reg(lab4, 9, 1000)      #PCLK-1=9 : Qbias 
+                self.l4reg(lab4, 10, 2780)     #PCLK-1=10 : ISEL 
+                self.l4reg(lab4, 11, 4090)     #PCLK-1=11 : VtrimT 
 
-                '''DLL default values'''
                 for i in range (0, 128):       #PCLK-1=<255:383> : dTrim DACS
                         self.l4reg(lab4, i+256, 1500)
                         
+                '''timing register default values'''        
                 self.l4reg(lab4, 384, 95)      #PCLK-1=384 : wr_strb_le 
                 self.l4reg(lab4, 385, 17)      #PCLK-1=385 : wr_strb_fe 
                 self.l4reg(lab4, 386, 120)     #PCLK-1=386 : sstoutfb 
@@ -300,33 +307,37 @@ class SURF(ocpci.Device):
         
     def read_reg(self, lab, address=0): 		
         val = bf(self.read(self.map['LAB4_ROM_BASE']+lab<<11+address))
-        sample0 = val[15:0]
-        sample1 = val[31:16]
+        sample0 = val[11:0]
+        sample1 = val[27:16]
+        print 'LAB addr', lab, ', samples =', sample0, sample1
         return sample0, sample1
 
     def log_lab(self, lab, samples=128, force_trig=False, save=False, filename=''):
-        if save=True and len(filename)<=1:
+        if save==True and len(filename)<=1:
                 timestr=time.strftime('%Y%m%d-%H%M%S')
-                filename= timestr+'_LAB'+str(lab)+'.txt'
+                filename= timestr+'_LAB'+str(lab)+'.dat'
 
         if force_trig:
                 self.lab4c.force_trigger()
         labdata=np.zeros(samples)
         for i in range(0, int(samples), 2):
                labdata[i], labdata[i+1] = self.read_reg(lab) 
-                        
+               
+        if save:
+            np.savetxt(filename, labdata, delimiter=',')
         return labdata
 
-    def scope_lab(self, lab, samples, frames=1, refresh=0.05):
+    def scope_lab(self, lab, samples, frames=1, refresh=0.1):
         import matplotlib.pyplot as plt
         plt.ion()
         
         x=np.arange(samples)
         for i in range(0, frames):
-                fig=plt.figure()
+                fig=plt.figure(1)
+                plt.clf()
                 plot_data = self.log_lab(lab=lab, samples=samples, force_trig=True)
+                #plot_data = np.sin(x+np.random.uniform(0,np.pi))+np.random.normal(0, .1)
                 plt.plot(x, plot_data)
-                #plt.draw()
                 if i == (frames-1):
                         raw_input('press enter to close')
                         plt.close(fig)
