@@ -66,22 +66,22 @@ class LAB4_Controller:
 
         def default(self, lab4=15):
                 '''DAC default values'''
-                self.l4reg(lab4, 0,1024)     #PCLK-1=0 : Vboot 
-                self.l4reg(lab4, 1,1024)     #PCLK-1=1 : Vbsx
-                self.l4reg(lab4, 2,1024)     #PCLK-1=2 : VanN
-                self.l4reg(lab4, 3,1900)     #PCLK-1=3 : VadjN
-                self.l4reg(lab4, 4,1024)     #PCLK-1=4 : Vbs 
-                self.l4reg(lab4, 5,1100)     #PCLK-1=5 : Vbias 
-                self.l4reg(lab4, 6,950)      #PCLK-1=6 : Vbias2 
-                self.l4reg(lab4, 7,1024)     #PCLK-1=7 : CMPbias 
-                self.l4reg(lab4, 8,2700)     #PCLK-1=8 : VadjP 
-                self.l4reg(lab4, 9,1000)     #PCLK-1=9 : Qbias 
-                self.l4reg(lab4, 10,2780)    #PCLK-1=10 : ISEL 
-                self.l4reg(lab4, 11,4090)    #PCLK-1=11 : VtrimT 
+                self.l4reg(lab4, 0, 1024)     #PCLK-1=0 : Vboot 
+                self.l4reg(lab4, 1, 1024)     #PCLK-1=1 : Vbsx
+                self.l4reg(lab4, 2, 1024)     #PCLK-1=2 : VanN
+                self.l4reg(lab4, 3, 1900)     #PCLK-1=3 : VadjN
+                self.l4reg(lab4, 4, 1024)     #PCLK-1=4 : Vbs 
+                self.l4reg(lab4, 5, 1100)     #PCLK-1=5 : Vbias 
+                self.l4reg(lab4, 6, 950)      #PCLK-1=6 : Vbias2 
+                self.l4reg(lab4, 7, 1024)     #PCLK-1=7 : CMPbias 
+                self.l4reg(lab4, 8, 2700)     #PCLK-1=8 : VadjP 
+                self.l4reg(lab4, 9, 1000)     #PCLK-1=9 : Qbias 
+                self.l4reg(lab4, 10, 2780)    #PCLK-1=10 : ISEL 
+                self.l4reg(lab4, 11, 4090)    #PCLK-1=11 : VtrimT 
 
                 '''DLL default values'''
                 for i in range (0, 128):     #PCLK-1=<127:254> : dTrim DACS
-                        self.l4reg(lab4, i+127 1500)
+                        self.l4reg(lab4, i+127, 1500)
                         
                 self.l4reg(lab4, 255, 95)      #PCLK-1=255 : wr_strb_le 
                 self.l4reg(lab4, 256, 17)      #PCLK-1=256 : wr_strb_fe 
