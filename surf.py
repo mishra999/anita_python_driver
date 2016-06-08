@@ -17,7 +17,17 @@ class LAB4_Controller:
 		'TRIGGER'			: 0x00054,
 		'pb'				: 0x0007C,
 		   }
-
+        amon_map = { 'Vbs'                      : 0,
+                     'Vbias'                    : 1,
+                     'Vbias2'                   : 2,
+                     'CMPbias'                  : 3,
+                     'VadjP'                    : 4,
+                     'Qbias'                    : 5,
+                     'ISEL'                     : 6,
+                     'VtrimT'                   : 7,
+                     'VadjN'                    : 8,
+                     }
+                   
 	def __init__(self, dev, base):
 		self.dev = dev
 		self.base = base
