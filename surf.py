@@ -17,22 +17,43 @@ class LAB4_Controller:
 		'TRIGGER'			: 0x00054,
 		'pb'				: 0x0007C,
 		   }
-        amon_map = { 'Vbs'                      : 0,
-                     'Vbias'                    : 1,
-                     'Vbias2'                   : 2,
-                     'CMPbias'                  : 3,
-                     'VadjP'                    : 4,
-                     'Qbias'                    : 5,
-                     'ISEL'                     : 6,
-                     'VtrimT'                   : 7,
-                     'VadjN'                    : 8,
-                     }
-                   
+        amon = { 'Vbs'                      : 0,
+                 'Vbias'                    : 1,
+                 'Vbias2'                   : 2,
+                 'CMPbias'                  : 3,
+                 'VadjP'                    : 4,
+                 'Qbias'                    : 5,
+                 'ISEL'                     : 6,
+                 'VtrimT'                   : 7,
+                 'VadjN'                    : 8,
+                 }
+        tmon = {'A1'                        : 0,
+                'B1'                        : 1,
+                'A2'                        : 2,
+                'B2'                        : 3,
+                'SSPout'                    : 4,
+                'SSTout'                    : 36,
+                'PHASE'                     : 68,
+                'PHAB'                      : 5,
+                'SSPin'                     : 6,
+                'WR_STRB'                   : 7,
+                }
+                
 	def __init__(self, dev, base):
 		self.dev = dev
 		self.base = base
 		self.pb = picoblaze.PicoBlaze(self, self.map['pb'])
+        
+        def set_amon(self, lab, value):
+            self.l4reg(lab, 12, value)
 
+        def set_tmon(self, lab, value):
+            self.l4reg(lab, 396, value)
+            
+        def clr_phase(self, lab, value):
+            self.l4reg(lab, 396, self.tmon['PHASE']+128)
+            self.l4reg(lab, 396, self.tmon['PHASE'])
+            
 	def start(self):
 		ctrl = bf(self.read(self.map['CONTROL']))
 		while not ctrl[2]:
@@ -97,7 +118,7 @@ class LAB4_Controller:
                 self.l4reg(lab4, 385, 17)      #PCLK-1=385 : wr_strb_fe 
                 self.l4reg(lab4, 386, 120)     #PCLK-1=386 : sstoutfb 
                 self.l4reg(lab4, 387, 0)       #PCLK-1=387 : wr_addr_sync 
-                self.l4ref(lab4, 388, 38)      #PCLK-1=388 : tmk_s1_le
+                self.l4reg(lab4, 388, 38)      #PCLK-1=388 : tmk_s1_le
                 self.l4reg(lab4, 389, 86)      #PCLK-1=388 : tmk_s1_fe 
                 self.l4reg(lab4, 390, 120)     #PCLK-1=261 : tmk_s2_le 
                 self.l4reg(lab4, 391, 20)      #PCLK-1=262 : tmk_s2_fe
