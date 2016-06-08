@@ -5,6 +5,7 @@ import time
 from bf import *   # imports the module bf, and creates references in the current namespace to all public objects defined by bf
 import spi
 import picoblaze
+import numpy as np
 
 class LAB4_Controller:
         map = { 'CONTROL'			: 0x00000,
@@ -109,6 +110,18 @@ class LAB4_Controller:
                 self.l4reg(lab4, 9, 1000)      #PCLK-1=9 : Qbias 
                 self.l4reg(lab4, 10, 2780)     #PCLK-1=10 : ISEL 
                 self.l4reg(lab4, 11, 4090)     #PCLK-1=11 : VtrimT 
+                self.l4reg(lab4, 0, 1024)     #PCLK-1=0 : Vboot 
+                self.l4reg(lab4, 1, 1024)     #PCLK-1=1 : Vbsx
+                self.l4reg(lab4, 2, 1024)     #PCLK-1=2 : VanN
+                self.l4reg(lab4, 3, 1900)     #PCLK-1=3 : VadjN
+                self.l4reg(lab4, 4, 1024)     #PCLK-1=4 : Vbs 
+                self.l4reg(lab4, 5, 1100)     #PCLK-1=5 : Vbias 
+                self.l4reg(lab4, 6, 950)      #PCLK-1=6 : Vbias2 
+                self.l4reg(lab4, 7, 1024)     #PCLK-1=7 : CMPbias 
+                self.l4reg(lab4, 8, 2700)     #PCLK-1=8 : VadjP 
+                self.l4reg(lab4, 9, 1000)     #PCLK-1=9 : Qbias 
+                self.l4reg(lab4, 10, 2780)    #PCLK-1=10 : ISEL 
+                self.l4reg(lab4, 11, 4090)    #PCLK-1=11 : VtrimT 
 
                 '''DLL default values'''
                 for i in range (0, 128):       #PCLK-1=<255:383> : dTrim DACS
@@ -127,12 +140,11 @@ class LAB4_Controller:
                 self.l4reg(lab4, 394, 92)      #PCLK-1=394 : sspin_le
                 self.l4reg(lab4, 395, 10)      #PCLK-1=395 : sspin_fe
  
-					        
 class SURF(ocpci.Device):
     internalClock = 0
     externalClock = 1
-    map = { 'IDENT'             : 0x00000,
-            'VERSION'           : 0x00004,
+    map = { 'IDENT'                     : 0x00000,
+            'VERSION'                   : 0x00004,
             'INTCSR'    		: 0x00008,
             'INTMASK'      		: 0x0000C,
             'PPSSEL'       		: 0x00010,
@@ -140,9 +152,10 @@ class SURF(ocpci.Device):
             'LED'          		: 0x00018,
             'CLKSEL'       		: 0x0001C,      ## this is a clock
             'PLLCTRL'      		: 0x00020,      ## this is a clock, PLL = phase locked loop 
-            'SPICS'             : 0x00024,      ## this is the spiss variable in the firmware doc 
-            'SPI_BASE'          : 0x00030,
-	    'LAB4_CTRL_BASE'    : 0x10000,	    
+            'SPICS'                     : 0x00024,      ## this is the spiss variable in the firmware doc 
+            'SPI_BASE'                  : 0x00030,
+	    'LAB4_CTRL_BASE'            : 0x10000,
+	    'LAB4_ROM_BASE'             : 0x20000,      ## verify this.
            }
 
     def __init__(self, path="/sys/class/uio/uio0"):
@@ -284,10 +297,42 @@ class SURF(ocpci.Device):
         print " LED        : Internal value %3.3x, Key value %3.3x" % (led[11:0], led[27:16])
         print " Full LED   : %8.8x" % (self.read(self.map['LED']) & 0xFFFFFFFF)
         print " Int Mask   : %8.8x" % (self.read(self.map['INTMASK']) & 0xFFFFFFFF)
-		
-		
-		
-		
+        
+    def read_reg(self, lab, address=0): 		
+        val = bf(self.read(self.map['LAB4_ROM_BASE']+lab<<11+address))
+        sample0 = val[15:0]
+        sample1 = val[31:16]
+        return sample0, sample1
+
+    def log_lab(self, lab, samples=128, force_trig=False, save=False, filename=''):
+        if save=True and len(filename)<=1:
+                timestr=time.strftime('%Y%m%d-%H%M%S')
+                filename= timestr+'_LAB'+str(lab)+'.txt'
+
+        if force_trig:
+                self.lab4c.force_trigger()
+        labdata=np.zeros(samples)
+        for i in range(0, int(samples), 2):
+               labdata[i], labdata[i+1] = self.read_reg(lab) 
+                        
+        return labdata
+
+    def scope_lab(self, lab, samples, frames=1, refresh=0.05):
+        import matplotlib.pyplot as plt
+        plt.ion()
+        
+        x=np.arange(samples)
+        for i in range(0, frames):
+                fig=plt.figure()
+                plot_data = self.log_lab(lab=lab, samples=samples, force_trig=True)
+                plt.plot(x, plot_data)
+                #plt.draw()
+                if i == (frames-1):
+                        raw_input('press enter to close')
+                        plt.close(fig)
+                else:
+                        plt.pause(refresh)
+                  
     def identify(self):
         ident = bf(self.read(self.map['IDENT']))
         ver = bf(self.read(self.map['VERSION']))
