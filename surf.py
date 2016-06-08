@@ -7,15 +7,15 @@ import spi
 import picoblaze
 
 class LAB4_Controller:
-	map = { 'CONTROL'			: 0x00000,
-			'SHIFTPRESCALE'		: 0x00004,
-			'RDOUTPRESCALE'		: 0x00008,
-			'WILKDELAY'			: 0x0000C,
-			'WILKMAX'			: 0x00010,
-			'TPCTRL'			: 0x00014,
-			'L4REG'				: 0x00018,
-			'TRIGGER'			: 0x00054,
-			'pb'				: 0x0007C,
+        map = { 'CONTROL'			: 0x00000,
+                'SHIFTPRESCALE'		        : 0x00004,
+		'RDOUTPRESCALE'		        : 0x00008,
+		'WILKDELAY'			: 0x0000C,
+		'WILKMAX'			: 0x00010,
+		'TPCTRL'			: 0x00014,
+		'L4REG'				: 0x00018,
+		'TRIGGER'			: 0x00054,
+		'pb'				: 0x0007C,
 		   }
 
 	def __init__(self, dev, base):
@@ -44,8 +44,8 @@ class LAB4_Controller:
 		return self.dev.read(addr + self.base)
     
 	def write(self, addr, value):
-		self.dev.write(addr + self.base, value)
-
+		self.dev.write(addr + self.base, value)                
+                
 	def l4reg(self, lab, addr, value):
 		ctrl = bf(self.read(self.map['CONTROL']))
 		if ctrl[2]:
@@ -62,7 +62,39 @@ class LAB4_Controller:
 		print 'Going to write 0x%X' % user
 		self.write(self.map['L4REG'], int(user))
 		while not user[31]:
-			user = bf(self.read(self.map['L4REG']))
+                        user = bf(self.read(self.map['L4REG']))
+
+        def default(self, lab4=15):
+                '''DAC default values'''
+                self.l4reg(lab4, 0, 1024)     #PCLK-1=0 : Vboot 
+                self.l4reg(lab4, 1, 1024)     #PCLK-1=1 : Vbsx
+                self.l4reg(lab4, 2, 1024)     #PCLK-1=2 : VanN
+                self.l4reg(lab4, 3, 1900)     #PCLK-1=3 : VadjN
+                self.l4reg(lab4, 4, 1024)     #PCLK-1=4 : Vbs 
+                self.l4reg(lab4, 5, 1100)     #PCLK-1=5 : Vbias 
+                self.l4reg(lab4, 6, 950)      #PCLK-1=6 : Vbias2 
+                self.l4reg(lab4, 7, 1024)     #PCLK-1=7 : CMPbias 
+                self.l4reg(lab4, 8, 2700)     #PCLK-1=8 : VadjP 
+                self.l4reg(lab4, 9, 1000)     #PCLK-1=9 : Qbias 
+                self.l4reg(lab4, 10, 2780)    #PCLK-1=10 : ISEL 
+                self.l4reg(lab4, 11, 4090)    #PCLK-1=11 : VtrimT 
+
+                '''DLL default values'''
+                for i in range (0, 128):     #PCLK-1=<127:254> : dTrim DACS
+                        self.l4reg(lab4, i+127, 1500)
+                        
+                self.l4reg(lab4, 255, 95)      #PCLK-1=255 : wr_strb_le 
+                self.l4reg(lab4, 256, 17)      #PCLK-1=256 : wr_strb_fe 
+                self.l4reg(lab4, 257, 120)     #PCLK-1=257 : sstoutfb 
+                self.l4reg(lab4, 259, 38)      #PCLK-1=259 : tmk_s1_le 
+                self.l4reg(lab4, 260, 86)      #PCLK-1=260 : tmk_s1_fe 
+                self.l4reg(lab4, 261, 120)     #PCLK-1=261 : tmk_s2_le 
+                self.l4reg(lab4, 262, 20)      #PCLK-1=262 : tmk_s2_fe
+                self.l4reg(lab4, 263, 45)      #PCLK-1=263 : phase_le
+                self.l4reg(lab4, 264, 85)      #PCLK-1=264 : phase_fe
+                self.l4reg(lab4, 265, 92)      #PCLK-1=265 : sspin_le
+                self.l4reg(lab4, 266, 10)      #PCLK-1=266 : sspin_fe
+ 
 					        
 class SURF(ocpci.Device):
     internalClock = 0
