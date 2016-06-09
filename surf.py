@@ -328,7 +328,36 @@ class SURF(ocpci.Device):
         print "**********************"
         print "LAB4 runmode: %s" % ("enabled" if labcontrol[1] else "not enabled")
         print "LAB4 testpat: %s" % ("enabled" if not labreadout[4] else "not enabled")
-        
+
+    def setupi2c(self):
+        self.write(self.map['RFP_BASE']+0x41) #PRERlo using 33MHz/(5*100kHz) -1 
+        self.write(self.map['RFP_BASE']+(0x00<<4))  #PRERhi
+        self.write(self.map['RFP_BASE']+(0x40<<8))  #enable core
+
+    def set_vped(self, value=0x9C4):
+        dac_bytes=[0xC0, 0x5E, 0x89, 0xC4]
+        self.write(self.map['RFP_BASE']+(0x90<<16)) #write to slave command
+
+        while(self.read(self.map['RFP_BASE'] & (0x2<<16))):
+                print 'waiting for slave transfer to complete'
+
+        if self.read(self.map['RFP_BASE'] & (0x40<<16)):  #still NACK
+                print 'slave did not ACK'
+                self.write(self.map['RFP_BASE']+(0x40<<16))
+                #try_again?
+                return 1
+        else:
+                for i in range(0, len(dac_bytes)):
+                     self.write(self.map['RFP_BASE']+(dac_bytes[i]<<12)):
+                     while(self.read(self.map['RFP_BASE'] & (0x2<<16))):
+                             print 'waiting for TIP'
+                     if self.read(self.map['RFO_BASE'] & (0x40<<16))):
+                             print 'error, no ACK'
+                             return 1
+                self.write(self.map['RFP_BASE']+(0x20<<16))
+
+                
+
     def read_fifo(self, lab, address=0): 		
         val = bf(self.read(self.map['LAB4_ROM_BASE']+(lab<<11)+address))
         sample0 = val[11:0]
