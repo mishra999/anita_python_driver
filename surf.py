@@ -82,7 +82,7 @@ class LAB4_Controller:
                 ctrl[1] = 0
                 self.write(self.map['CONTROL'], ctrl)
         
-        def testpattern_mode(self, enable=True):
+        def testpattern_mode(self, enable=True):     #when enabled, SELany bit is 0
             rdout = bf(self.read(self.map['READOUT']))
             if enable:
                 rdout[4] = 0 
@@ -178,9 +178,10 @@ class SURF(ocpci.Device):
             'CLKSEL'       		: 0x0001C,      ## this is a clock
             'PLLCTRL'      		: 0x00020,      ## this is a clock, PLL = phase locked loop 
             'SPICS'                     : 0x00024,      ## this is the spiss variable in the firmware doc 
+            'PHASESEL'                  : 0x00028,
             'SPI_BASE'                  : 0x00030,
-	    'LAB4_CTRL_BASE'            : 0x10000,
-	    'LAB4_ROM_BASE'             : 0x20000,      ## verify this.
+            'LAB4_CTRL_BASE'            : 0x10000,
+	    'LAB4_ROM_BASE'             : 0x20000,      
             'RFP_BASE'                  : 0x30000,
            }
 
@@ -188,7 +189,8 @@ class SURF(ocpci.Device):
         ocpci.Device.__init__(self, path, 1*1024*1024)
         self.spi = spi.SPI(self, self.map['SPI_BASE'])
 	self.labc = LAB4_Controller(self, self.map['LAB4_CTRL_BASE'])
-	
+	self.setupi2c()
+        
     def __repr__(self):
         return "<SURF at %s>" % self.path
 
@@ -201,7 +203,10 @@ class SURF(ocpci.Device):
         val[device] = state
         self.write(self.map['SPICS'], int(val))
 		
-				
+    def set_phase(self, phase=0):
+        #fix later
+        self.write(self.map['PHASESEL'], phase)
+        
     def led(self, arg):
         off_led_num = 14                     # initializing this to something while debugging 
         on_led_num = 14
@@ -330,39 +335,34 @@ class SURF(ocpci.Device):
         print "LAB4 testpat: %s" % ("enabled" if not labreadout[4] else "not enabled")
 
     def setupi2c(self):
-        self.write(self.map['RFP_BASE']+0x41) #PRERlo using 33MHz/(5*100kHz) -1 
-        self.write(self.map['RFP_BASE']+(0x00<<4))  #PRERhi
-        self.write(self.map['RFP_BASE']+(0x40<<8))  #enable core
+        self.write(self.map['RFP_BASE']+0, 0x41)
+        self.write(self.map['RFP_BASE']+4, 0x00)
+        self.write(self.map['RFP_BASE']+8, 0x80)  #enable core
 
     def set_vped(self, value=0x9C4):
-        dac_bytes=[0xC0, 0x5E, 0x89, 0xC4]
-        self.write(self.map['RFP_BASE']+(0x90<<16)) #write to slave command
+        val=bf(value)
+        dac_bytes=[0xC0, 0x5E, (0x8<<4) | (val[11:8]), val[7:0]]
+    
+        for i in range(0, len(dac_bytes)):
+            self.write(self.map['RFP_BASE']+12, dac_bytes[i])
 
-        while(self.read(self.map['RFP_BASE'] & (0x2<<16))):
-                print 'waiting for slave transfer to complete'
-
-        if self.read(self.map['RFP_BASE'] & (0x40<<16)):  #still NACK
-                print 'slave did not ACK'
-                self.write(self.map['RFP_BASE']+(0x40<<16))
-                #try_again?
+            if i==0:
+                self.write(self.map['RFP_BASE']+16, 0x90) #write to slave and start a write
+            elif i==len(dac_bytes)-1:
+                self.write(self.map['RFP_BASE']+16, 0x50) #write to slave and stop write
+            else:
+                self.write(self.map['RFP_BASE']+16, 0x10) #write to slave
+            while(self.read(self.map['RFP_BASE']+16) & 0x2):
+                print 'waiting for TIP'
+            if (self.read(self.map['RFP_BASE']+16) & 0x80):
+                print 'error, no ACK'
                 return 1
-        else:
-                for i in range(0, len(dac_bytes)):
-                     self.write(self.map['RFP_BASE']+(dac_bytes[i]<<12)):
-                     while(self.read(self.map['RFP_BASE'] & (0x2<<16))):
-                             print 'waiting for TIP'
-                     if self.read(self.map['RFO_BASE'] & (0x40<<16))):
-                             print 'error, no ACK'
-                             return 1
-                self.write(self.map['RFP_BASE']+(0x20<<16))
-
                 
-
     def read_fifo(self, lab, address=0): 		
         val = bf(self.read(self.map['LAB4_ROM_BASE']+(lab<<11)+address))
         sample0 = val[11:0]
         sample1 = val[27:16]
-        print 'LAB addr', lab, ', samples =', sample0, sample1
+        print 'LAB addr', lab, ', samples =', hex(sample0), hex(sample1)
         return sample0, sample1
 
     def log_lab(self, lab, samples=128, force_trig=False, save=False, filename=''):
