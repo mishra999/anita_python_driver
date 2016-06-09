@@ -16,8 +16,9 @@ class LAB4_Controller:
 		'TPCTRL'			: 0x00014,
 		'L4REG'				: 0x00018,
 		'TRIGGER'			: 0x00054,
-		'pb'				: 0x0007C,
-		   }
+                'READOUT'                       : 0x00058,
+                'pb'				: 0x0007C,
+                }
         amon = { 'Vbs'                      : 0,
                  'Vbias'                    : 1,
                  'Vbias2'                   : 2,
@@ -54,7 +55,7 @@ class LAB4_Controller:
         def clr_phase(self, lab):
             self.l4reg(lab, 396, self.tmon['PHAB']+128)
             self.l4reg(lab, 396, self.tmon['PHAB'])
-            
+
 	def start(self):
 		ctrl = bf(self.read(self.map['CONTROL']))
 		while not ctrl[2]:
@@ -72,13 +73,29 @@ class LAB4_Controller:
 	def force_trigger(self):
 		self.write(self.map['TRIGGER'], 2)
                 
-        def run_mode(self, do=True):
-            if do:
-                self.write(self.map['CONTROL'], 2)
+        def run_mode(self, enable=True):
+            ctrl = bf(self.read(self.map['CONTROL']))
+            if enable:
+                ctrl[1] = 1
+                self.write(self.map['CONTROL'], ctrl)
             else:
-                self.write(self.map['CONTROL'], 0)
-                
-	def read(self, addr):
+                ctrl[1] = 0
+                self.write(self.map['CONTROL'], ctrl)
+        
+        def testpattern_mode(self, enable=True):
+            rdout = bf(self.read(self.map['READOUT']))
+            if enable:
+                rdout[4] = 0 
+                self.write(self.map['READOUT'], rdout)
+            else:
+                rdout[4] = 1
+                self.write(self.map['READOUT'], rdout)
+
+        def testpattern(self, lab4, pattern=0xBAD):
+            self.l4reg(lab4, 13, pattern)
+            return [lab4, pattern]
+        
+        def read(self, addr):
 		return self.dev.read(addr + self.base)
     
 	def write(self, addr, value):
@@ -87,23 +104,22 @@ class LAB4_Controller:
 	def l4reg(self, lab, addr, value, verbose=False):
 		ctrl = bf(self.read(self.map['CONTROL']))
 		if ctrl[2]:
-			print 'LAB4_Controller is running, cannot update registers.'
+			print 'LAB4_Controller is running, cannot update registers.' if verbose else '',
 			return
 		user = bf(self.read(self.map['L4REG']))
 		if user[31]:
-			print 'LAB4_Controller is still processing a register?'
+			print 'LAB4_Controller is still processing a register?' if verbose else '',
 			return
 		user[11:0] = value
 		user[23:12] = addr
 		user[27:24] = lab
 		user[31] = 1
-                if verbose:
-                    print 'Going to write 0x%X' % user
+                print 'Going to write 0x%X' % user if verbose else '',
 		self.write(self.map['L4REG'], int(user))
 		while not user[31]:
                         user = bf(self.read(self.map['L4REG']))
 
-        def default_dac(self, lab4=15):
+        def default(self, lab4=15):
                 '''DAC default values'''
                 self.l4reg(lab4, 0, 1024)      #PCLK-1=0 : Vboot 
                 self.l4reg(lab4, 1, 1024)      #PCLK-1=1 : Vbsx
@@ -132,8 +148,6 @@ class LAB4_Controller:
 
                 for i in range (0, 128):       #PCLK-1=<255:383> : dTrim DACS
                         self.l4reg(lab4, i+256, 1500)
-
-        def default_timing(self, lab4=15):
                 '''timing register default values'''        
                 self.l4reg(lab4, 384, 17)      #PCLK-1=384 : wr_strb_le 
                 self.l4reg(lab4, 385, 95)      #PCLK-1=385 : wr_strb_fe 
@@ -148,6 +162,8 @@ class LAB4_Controller:
                 self.l4reg(lab4, 394, 92)      #PCLK-1=394 : sspin_le
                 self.l4reg(lab4, 395, 10)      #PCLK-1=395 : sspin_fe
 
+                '''default test pattern'''
+                self.l4reg(lab4, 13, 0xBAD)    #PCLK-1=13  : LoadTPG
                 
 class SURF(ocpci.Device):
     internalClock = 0
@@ -165,6 +181,7 @@ class SURF(ocpci.Device):
             'SPI_BASE'                  : 0x00030,
 	    'LAB4_CTRL_BASE'            : 0x10000,
 	    'LAB4_ROM_BASE'             : 0x20000,      ## verify this.
+            'RFP_BASE'                  : 0x30000,
            }
 
     def __init__(self, path="/sys/class/uio/uio0"):
@@ -297,6 +314,8 @@ class SURF(ocpci.Device):
         int_status = bf(self.read(self.map['INTCSR']))
         int_mask = bf(self.read(self.map['INTMASK']))
         led = bf(self.read(self.map['LED']))
+        labcontrol = bf(self.labc.read(self.labc.map['CONTROL']))
+        labreadout = bf(self.labc.read(self.labc.map['READOUT']))
         print "Clock Status: LAB4 Clock is %s (CLKSEL[1] = %d)" % ("enabled" if clocksel[1] else "not enabled", clocksel[1])
         print "            : LAB4 Driving Clock is %s (CLKSEL[0] = %d)" % ("TURF Clock" if clocksel[0] else "FPGA Clock", clocksel[0])
 	print "            : Local Clock is %s (CLKSEL[2] = %d)" % ("enabled" if not clocksel[2] else "not enabled", clocksel[2])
@@ -306,9 +325,12 @@ class SURF(ocpci.Device):
         print " LED        : Internal value %3.3x, Key value %3.3x" % (led[11:0], led[27:16])
         print " Full LED   : %8.8x" % (self.read(self.map['LED']) & 0xFFFFFFFF)
         print " Int Mask   : %8.8x" % (self.read(self.map['INTMASK']) & 0xFFFFFFFF)
+        print "**********************"
+        print "LAB4 runmode: %s" % ("enabled" if labcontrol[1] else "not enabled")
+        print "LAB4 testpat: %s" % ("enabled" if not labreadout[4] else "not enabled")
         
-    def read_reg(self, lab, address=0): 		
-        val = bf(self.read(self.map['LAB4_ROM_BASE']+lab<<11+address))
+    def read_fifo(self, lab, address=0): 		
+        val = bf(self.read(self.map['LAB4_ROM_BASE']+(lab<<11)+address))
         sample0 = val[11:0]
         sample1 = val[27:16]
         print 'LAB addr', lab, ', samples =', sample0, sample1
@@ -323,7 +345,7 @@ class SURF(ocpci.Device):
                 self.lab4c.force_trigger()
         labdata=np.zeros(samples)
         for i in range(0, int(samples), 2):
-               labdata[i], labdata[i+1] = self.read_reg(lab) 
+               labdata[i], labdata[i+1] = self.read_fifo(lab) 
                
         if save:
             np.savetxt(filename, labdata, delimiter=',')
@@ -343,6 +365,7 @@ class SURF(ocpci.Device):
                 if i == (frames-1):
                         raw_input('press enter to close')
                         plt.close(fig)
+                        plt.ioff()
                 else:
                         plt.pause(refresh)
                   
