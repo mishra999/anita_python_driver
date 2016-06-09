@@ -103,7 +103,7 @@ class LAB4_Controller:
 		while not user[31]:
                         user = bf(self.read(self.map['L4REG']))
 
-        def default(self, lab4=15):
+        def default_dac(self, lab4=15):
                 '''DAC default values'''
                 self.l4reg(lab4, 0, 1024)      #PCLK-1=0 : Vboot 
                 self.l4reg(lab4, 1, 1024)      #PCLK-1=1 : Vbsx
@@ -132,21 +132,23 @@ class LAB4_Controller:
 
                 for i in range (0, 128):       #PCLK-1=<255:383> : dTrim DACS
                         self.l4reg(lab4, i+256, 1500)
-                        
+
+        def default_timing(self, lab4=15):
                 '''timing register default values'''        
-                self.l4reg(lab4, 384, 95)      #PCLK-1=384 : wr_strb_le 
-                self.l4reg(lab4, 385, 17)      #PCLK-1=385 : wr_strb_fe 
+                self.l4reg(lab4, 384, 17)      #PCLK-1=384 : wr_strb_le 
+                self.l4reg(lab4, 385, 95)      #PCLK-1=385 : wr_strb_fe 
                 self.l4reg(lab4, 386, 120)     #PCLK-1=386 : sstoutfb 
                 self.l4reg(lab4, 387, 0)       #PCLK-1=387 : wr_addr_sync 
-                self.l4reg(lab4, 388, 85)      #PCLK-1=388 : tmk_s1_le  
-                self.l4reg(lab4, 389, 120)     #PCLK-1=389 : tmk_s1_fe 
+                self.l4reg(lab4, 388, 38)      #PCLK-1=388 : tmk_s1_le  
+                self.l4reg(lab4, 389, 86)      #PCLK-1=389 : tmk_s1_fe 
                 self.l4reg(lab4, 390, 120)     #PCLK-1=390 : tmk_s2_le 
                 self.l4reg(lab4, 391, 20)      #PCLK-1=391 : tmk_s2_fe
-                self.l4reg(lab4, 392, 45)      #PCLK-1=392 : phase_le
-                self.l4reg(lab4, 393, 85)      #PCLK-1=393 : phase_fe
+                self.l4reg(lab4, 392, 75)      #PCLK-1=392 : phase_le -- was 45 6/8
+                self.l4reg(lab4, 393, 35)      #PCLK-1=393 : phase_fe -- was 85 6/8
                 self.l4reg(lab4, 394, 92)      #PCLK-1=394 : sspin_le
                 self.l4reg(lab4, 395, 10)      #PCLK-1=395 : sspin_fe
- 
+
+                
 class SURF(ocpci.Device):
     internalClock = 0
     externalClock = 1
