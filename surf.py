@@ -45,7 +45,7 @@ class LAB4_Controller:
 		self.dev = dev
 		self.base = base
                 self.pb = picoblaze.PicoBlaze(self, self.map['pb'])
-        
+                
         def set_amon(self, lab, value):
             self.l4reg(lab, 12, value)
 
@@ -69,10 +69,39 @@ class LAB4_Controller:
 			ctrl[1] = 0
 			self.write(self.map['CONTROL'], int(ctrl))
 			ctrl = bf(self.read(self.map['CONTROL']))
-
+        '''
+        send software trigger
+        '''
 	def force_trigger(self):
 		self.write(self.map['TRIGGER'], 2)
-                
+        '''
+        clear all registers on LAB
+        '''
+        def reg_clr(self):
+            ctrl = bf(self.read(self.map['CONTROL']))
+            if ctrl[1]:
+                print 'cannot issue REG_CLR: LAB4 in run mode'
+                return 1
+            else:
+                self.write(0, 0xFFF0000)
+                self.write(0, 0)
+                return 0
+        '''
+        reset FIFO on FPGA, which holds LAB4 data
+        '''
+        def fifo_reset(self, force=False):
+            ctrl = bf(self.read(self.map['CONTROL']))
+            if ctrl[1] and not force:
+                print 'cannot reset FIFO: LAB4 in run mode'
+                return 1
+            else:
+                rdout = bf(self.read(self.map['READOUT']))
+                rdout[2] = 1
+                self.write(self.map['READOUT'], rdout) 
+                return 0
+        '''
+        enables LAB run mode (sample+digitize+readout)
+        '''    
         def run_mode(self, enable=True):
             ctrl = bf(self.read(self.map['CONTROL']))
             if enable:
@@ -81,7 +110,9 @@ class LAB4_Controller:
             else:
                 ctrl[1] = 0
                 self.write(self.map['CONTROL'], ctrl)
-        
+        '''
+        enable serial test-pattern data on output
+        '''
         def testpattern_mode(self, enable=True):     #when enabled, SELany bit is 0
             rdout = bf(self.read(self.map['READOUT']))
             if enable:
@@ -91,7 +122,10 @@ class LAB4_Controller:
                 rdout[4] = 1
                 self.write(self.map['READOUT'], rdout)
 
-        def testpattern(self, lab4, pattern=0xBAD):
+        '''
+        set serial data test-pattern (12 bits)
+        '''
+        def testpattern(self, lab4, pattern=0xBA6):
             self.l4reg(lab4, 13, pattern)
             return [lab4, pattern]
         
@@ -103,18 +137,19 @@ class LAB4_Controller:
                 
 	def l4reg(self, lab, addr, value, verbose=False):
 		ctrl = bf(self.read(self.map['CONTROL']))
-		if ctrl[2]:
-			print 'LAB4_Controller is running, cannot update registers.' if verbose else '',
-			return
+		if ctrl[1]:  #should be checking ctrl[2], which indicates run-mode. but not working 6/9
+                    print 'LAB4_Controller is running, cannot update registers.' 
+                    return
 		user = bf(self.read(self.map['L4REG']))
 		if user[31]:
-			print 'LAB4_Controller is still processing a register?' if verbose else '',
-			return
+                    print 'LAB4_Controller is still processing a register?' 
+                    return
 		user[11:0] = value
 		user[23:12] = addr
 		user[27:24] = lab
 		user[31] = 1
-                print 'Going to write 0x%X' % user if verbose else '',
+                if verbose:
+                    print 'Going to write 0x%X' % user 
 		self.write(self.map['L4REG'], int(user))
 		while not user[31]:
                         user = bf(self.read(self.map['L4REG']))
@@ -133,37 +168,27 @@ class LAB4_Controller:
                 self.l4reg(lab4, 9, 1000)      #PCLK-1=9 : Qbias 
                 self.l4reg(lab4, 10, 2780)     #PCLK-1=10 : ISEL 
                 self.l4reg(lab4, 11, 4090)     #PCLK-1=11 : VtrimT 
-                self.l4reg(lab4, 0, 1024)      #PCLK-1=0 : Vboot 
-                self.l4reg(lab4, 1, 1024)      #PCLK-1=1 : Vbsx
-                self.l4reg(lab4, 2, 1024)      #PCLK-1=2 : VanN
-                self.l4reg(lab4, 3, 1900)      #PCLK-1=3 : VadjN
-                self.l4reg(lab4, 4, 1024)      #PCLK-1=4 : Vbs 
-                self.l4reg(lab4, 5, 1100)      #PCLK-1=5 : Vbias 
-                self.l4reg(lab4, 6, 950)       #PCLK-1=6 : Vbias2 
-                self.l4reg(lab4, 7, 1024)      #PCLK-1=7 : CMPbias 
-                self.l4reg(lab4, 8, 2700)      #PCLK-1=8 : VadjP 
-                self.l4reg(lab4, 9, 1000)      #PCLK-1=9 : Qbias 
-                self.l4reg(lab4, 10, 2780)     #PCLK-1=10 : ISEL 
-                self.l4reg(lab4, 11, 4090)     #PCLK-1=11 : VtrimT 
-
+                self.l4reg(lab4, 16, 0)        #patrick said to add 6/9
+                
                 for i in range (0, 128):       #PCLK-1=<255:383> : dTrim DACS
-                        self.l4reg(lab4, i+256, 1500)
+                        self.l4reg(lab4, i+256, 0)
+                
                 '''timing register default values'''        
-                self.l4reg(lab4, 384, 17)      #PCLK-1=384 : wr_strb_le 
-                self.l4reg(lab4, 385, 95)      #PCLK-1=385 : wr_strb_fe 
+                self.l4reg(lab4, 384, 95)      #PCLK-1=384 : wr_strb_le 
+                self.l4reg(lab4, 385, 0)       #PCLK-1=385 : wr_strb_fe 
                 self.l4reg(lab4, 386, 120)     #PCLK-1=386 : sstoutfb 
                 self.l4reg(lab4, 387, 0)       #PCLK-1=387 : wr_addr_sync 
                 self.l4reg(lab4, 388, 38)      #PCLK-1=388 : tmk_s1_le  
                 self.l4reg(lab4, 389, 86)      #PCLK-1=389 : tmk_s1_fe 
                 self.l4reg(lab4, 390, 120)     #PCLK-1=390 : tmk_s2_le 
                 self.l4reg(lab4, 391, 20)      #PCLK-1=391 : tmk_s2_fe
-                self.l4reg(lab4, 392, 75)      #PCLK-1=392 : phase_le -- was 45 6/8
-                self.l4reg(lab4, 393, 35)      #PCLK-1=393 : phase_fe -- was 85 6/8
+                self.l4reg(lab4, 392, 35)      #PCLK-1=392 : phase_le -- was 45 6/8
+                self.l4reg(lab4, 393, 75)      #PCLK-1=393 : phase_fe -- was 85 6/8
                 self.l4reg(lab4, 394, 92)      #PCLK-1=394 : sspin_le
                 self.l4reg(lab4, 395, 10)      #PCLK-1=395 : sspin_fe
 
                 '''default test pattern'''
-                self.l4reg(lab4, 13, 0xBAD)    #PCLK-1=13  : LoadTPG
+                self.l4reg(lab4, 13, 0xBA6)    #PCLK-1=13  : LoadTPG
                 
 class SURF(ocpci.Device):
     internalClock = 0
@@ -190,6 +215,7 @@ class SURF(ocpci.Device):
         self.spi = spi.SPI(self, self.map['SPI_BASE'])
 	self.labc = LAB4_Controller(self, self.map['LAB4_CTRL_BASE'])
 	self.setupi2c()
+        self.Vped = 0x9C4
         
     def __repr__(self):
         return "<SURF at %s>" % self.path
@@ -335,9 +361,77 @@ class SURF(ocpci.Device):
         print "LAB4 testpat: %s" % ("enabled" if not labreadout[4] else "not enabled")
 
     def setupi2c(self):
+        #setup RFP_DAC
         self.write(self.map['RFP_BASE']+0, 0x41)
         self.write(self.map['RFP_BASE']+4, 0x00)
         self.write(self.map['RFP_BASE']+8, 0x80)  #enable core
+        #setup RFP_0
+        self.write(self.map['RFP_BASE']+0x20, 0x41)
+        self.write(self.map['RFP_BASE']+0x24, 0x00)
+        self.write(self.map['RFP_BASE']+0x28, 0x80)
+        #setup RFP_1
+        self.write(self.map['RFP_BASE']+0x40, 0x41)
+        self.write(self.map['RFP_BASE']+0x44, 0x00)
+        self.write(self.map['RFP_BASE']+0x48, 0x80)
+        #setup RFP_2
+        self.write(self.map['RFP_BASE']+0x60, 0x41)
+        self.write(self.map['RFP_BASE']+0x64, 0x00)
+        self.write(self.map['RFP_BASE']+0x68, 0x80)       
+        #setup RFP_3
+        self.write(self.map['RFP_BASE']+0x80, 0x41)
+        self.write(self.map['RFP_BASE']+0x84, 0x00)
+        self.write(self.map['RFP_BASE']+0x88, 0x80)
+
+    ''' NOT DONE YET, will move i2c control to a class
+    def readi2cexpander(self, address=0x4D):
+        self.write(self.map['RFP_BASE']+12, 0x40) #address the device
+        self.write(self.map['RFP_BASE']+16, 0x90) #start write to core
+        while(self.read(self.map['RFP_BASE']+16) & 0x2):
+                print 'waiting for TIP'
+        if (self.read(self.map['RFP_BASE']+16) & 0x80):
+                print 'error, no ACK'
+                return 1
+        self.write(self.map['RFP_BASE']+12, address) #send address to read (interupt status register=0x4d)
+        self.write(self.map['RFP_BASE']+16, 0x10) #write to slave
+        while(self.read(self.map['RFP_BASE']+16) & 0x2):
+                print 'waiting for TIP'
+        if (self.read(self.map['RFP_BASE']+16) & 0x80):
+                print 'error, no ACK'
+                return 1
+        self.write(self.map['RFP_BASE']+12, 0x41) #address the device (+read bit)
+        self.write(self.map['RFP_BASE']+16, 0x90) #start write to core
+        while(self.read(self.map['RFP_BASE']+16) & 0x2):
+                print 'waiting for TIP'
+        if (self.read(self.map['RFP_BASE']+16) & 0x80):
+                print 'error, no ACK'
+                return 1
+        self.write(self.map['RFP_BASE']+12, 0x68) #set RD, STO, and NACK
+        print self.read(self.map['RFP_BASE']+12)
+    '''
+    
+    def setupi2cexpander(self):
+        config=[]
+        config.append([0x40, 0x44, 0xFF])  #input latch register 0
+        config.append([0x40, 0x45, 0xFF])  #input latch register 1
+        config.append([0x40, 0x46, 0xFF])  #PU/PD enable register 0
+        config.append([0x40, 0x47, 0xFF])  #PU/PD enable register 1
+        config.append([0x40, 0x48, 0xFF])  #PU/PD selection register 0
+        config.append([0x40, 0x49, 0xFF])  #PU/PD selection register 1
+        for dac in range(0, len(config)):
+                for i in range(0, len(config[dac])):
+                        self.write(self.map['RFP_BASE']+12, config[dac][i])
+                        if i==0:
+                                self.write(self.map['RFP_BASE']+16, 0x90) #write to slave and start a write
+                        elif i==len(config[dac])-1:
+                                self.write(self.map['RFP_BASE']+16, 0x50) #write to slave and stop write
+                        else:
+                                self.write(self.map['RFP_BASE']+16, 0x10) #write to slave
+                        while(self.read(self.map['RFP_BASE']+16) & 0x2):
+                                print 'waiting for TIP'
+                        if (self.read(self.map['RFP_BASE']+16) & 0x80):
+                                print 'error, no ACK'
+                                return dac*i+1
+        return 0
 
     def set_vped(self, value=0x9C4):
         val=bf(value)
@@ -345,7 +439,6 @@ class SURF(ocpci.Device):
     
         for i in range(0, len(dac_bytes)):
             self.write(self.map['RFP_BASE']+12, dac_bytes[i])
-
             if i==0:
                 self.write(self.map['RFP_BASE']+16, 0x90) #write to slave and start a write
             elif i==len(dac_bytes)-1:
@@ -357,12 +450,39 @@ class SURF(ocpci.Device):
             if (self.read(self.map['RFP_BASE']+16) & 0x80):
                 print 'error, no ACK'
                 return 1
-                
+        self.Vped=value
+        return 0        
+    
+    def set_rfp_vped(self, value=[0x9C4, 0x800, 0xA00]):
+        val0=bf(value[0])
+        val1=bf(value[1])
+        val2=bf(value[2])
+        dac_bytes=[]
+        dac_bytes.append([0xC0, 0x58, (0x8<<4) | (val0[11:8]), val0[7:0]])
+        dac_bytes.append([0xC0, 0x5A, (0x8<<4) | (val1[11:8]), val1[7:0]])
+        dac_bytes.append([0xC0, 0x5C, (0x8<<4) | (val2[11:8]), val2[7:0]])
+
+        for dac in range(0, len(dac_bytes)):
+                for i in range(0, len(dac_bytes[dac])):
+                        self.write(self.map['RFP_BASE']+12, dac_bytes[dac][i])
+                        if i==0:
+                                self.write(self.map['RFP_BASE']+16, 0x90) #write to slave and start a write
+                        elif i==len(dac_bytes[dac])-1:
+                                self.write(self.map['RFP_BASE']+16, 0x50) #write to slave and stop write
+                        else:
+                                self.write(self.map['RFP_BASE']+16, 0x10) #write to slave
+                        while(self.read(self.map['RFP_BASE']+16) & 0x2):
+                                print 'waiting for TIP'
+                        if (self.read(self.map['RFP_BASE']+16) & 0x80):
+                                print 'error, no ACK'
+                                return dac*i+1
+        return 0        
+        
     def read_fifo(self, lab, address=0): 		
         val = bf(self.read(self.map['LAB4_ROM_BASE']+(lab<<11)+address))
         sample0 = val[11:0]
         sample1 = val[27:16]
-        print 'LAB addr', lab, ', samples =', hex(sample0), hex(sample1)
+        #print 'LAB addr', lab, ', samples =', hex(sample0), hex(sample1)
         return sample0, sample1
 
     def log_lab(self, lab, samples=128, force_trig=False, save=False, filename=''):
@@ -371,7 +491,7 @@ class SURF(ocpci.Device):
                 filename= timestr+'_LAB'+str(lab)+'.dat'
 
         if force_trig:
-                self.lab4c.force_trigger()
+                self.labc.force_trigger()
         labdata=np.zeros(samples)
         for i in range(0, int(samples), 2):
                labdata[i], labdata[i+1] = self.read_fifo(lab) 
@@ -380,17 +500,17 @@ class SURF(ocpci.Device):
             np.savetxt(filename, labdata, delimiter=',')
         return labdata
 
-    def scope_lab(self, lab, samples, frames=1, refresh=0.1):
+    def scope_lab(self, lab, samples, force_trig=True, frames=1, refresh=0.1):
         import matplotlib.pyplot as plt
         plt.ion()
-        
+    
         x=np.arange(samples)
         for i in range(0, frames):
                 fig=plt.figure(1)
                 plt.clf()
                 plot_data = self.log_lab(lab=lab, samples=samples, force_trig=True)
                 #plot_data = np.sin(x+np.random.uniform(0,np.pi))+np.random.normal(0, .1)
-                plt.plot(x, plot_data)
+                plt.plot(x, plot_data, '-')
                 if i == (frames-1):
                         raw_input('press enter to close')
                         plt.close(fig)

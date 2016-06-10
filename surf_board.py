@@ -6,6 +6,7 @@ def do():
     print 'identify:'
     dev.identify()
     print 'path:', dev.path
+    dev.labc.run_mode(0)
     dev.clock(dev.internalClock)
     dev.labc.default()
     
