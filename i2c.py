@@ -16,7 +16,7 @@ class I2C:
            'NACK'    : 0x08 } # NACK 
 
     stat = {'RXACK'  : 0x80,  # received acknowledge from slave
-            'TIP'    : 0x01 } # transfer-in-progress
+            'TIP'    : 0x02 } # transfer-in-progress
     
     def __init__(self, dev, base, slave_addr, prescaler=0x41, enable_core=True):
         self.dev = dev
