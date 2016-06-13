@@ -4,8 +4,8 @@ class I2C:
     map = {'PREL'    : 0x00,
            'PREH'    : 0x04,
            'CTR'     : 0x08,
-           'TXR'     : 0x0C,
-           'RXR'     : 0x0C,
+           'TX'      : 0x0C,
+           'RX'      : 0x0C,
            'CR'      : 0x10,
            'SR'      : 0x10  }
 
@@ -52,7 +52,7 @@ class I2C:
     def start(self, read_mode=False): 
         addr = self.address << 1
         addr = addr | read_mode
-        self.dev.write(self.map['TXR'] + self.base, addr)  #send data to tx register
+        self.dev.write(self.map['TX'] + self.base, addr)  #send data to tx register
         self.dev.write(self.map['CR'] + self.base, self.cmd['STA'] | self.cmd['WR'])
         self.poll_tip()
         self.check_ack()
@@ -61,7 +61,7 @@ class I2C:
     write a byte of data to slave device
     ''' 
     def write(self, data, last_byte=False):
-        self.dev.write(self.map('TXR') + self.base, data & 0xFF)
+        self.dev.write(self.map['TX'] + self.base, data & 0xFF)
         cr_cmd=self.cmd['WR']
         if last_byte:
             cr_cmd = cr_cmd | self.cmd['STO']
@@ -80,7 +80,7 @@ class I2C:
         self.dev.write(self.map['CR'] + self.base, cr_cmd)
         self.poll_tip()
 
-        return self.dev.read(self.map['RXR'] + self.base)
+        return self.dev.read(self.map['RX'] + self.base)
 
     '''
     write a byte sequence, data ==> list of bytes...[byte0, byte1, byte2, ...]
