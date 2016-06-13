@@ -445,7 +445,7 @@ class SURF(ocpci.Device):
         self.dac.write_seq(dac_bytes)
         self.vped=value  #update vped value
 
-    def set_rfp_vped(self, values=[0x9C4, 0x800, 0xA00]):
+    def set_rfp_vped(self, value=[0x9C4, 0x800, 0xA00]):
         val0=bf(value[0])
         val1=bf(value[1])
         val2=bf(value[2])
