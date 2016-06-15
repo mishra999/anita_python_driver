@@ -7,6 +7,7 @@ import spi
 import i2c
 import picoblaze
 import numpy as np
+import surf_calibrations
 
 class LAB4_Controller:
         map = { 'CONTROL'			: 0x00000,
@@ -39,9 +40,9 @@ class LAB4_Controller:
                 'B1'                        : 1,
                 'A2'                        : 2,
                 'B2'                        : 3,
-                'SSPout'                    : 4,
-                'SSTout'                    : 36,
-                'PHASE'                     : 68,
+                'SSPout'                    : 68,
+                'SSTout'                    : 100,
+                'PHASE'                     : 4,
                 'PHAB'                      : 5,
                 'SSPin'                     : 6,
                 'WR_STRB'                   : 7,
@@ -93,6 +94,32 @@ class LAB4_Controller:
                     val = self.read(self.map['PHASECMD'])
                 res += self.read(self.map['PHASERES'])                
             return res/(trials*1.0)
+
+        def scan_value(self,lab,position):
+            if position > 4479:
+                print "Position must be 0-4479."
+                return None
+            val = bf(0)                
+            val[15:0] = position
+            val[19:16] = lab
+            self.write(self.map['PHASEARG'], int(val))
+            self.write(self.map['PHASECMD'], 0x03)
+            res = self.read(self.map['PHASECMD'])
+            while res != 0x00:
+                res = self.read(self.map['PHASECMD'])
+            return self.read(self.map['PHASERES'])
+        
+        def scan_edge(self,lab, pos=0, start=0):
+            val = bf(0)
+            val[15:0] = start
+            val[24] = pos
+            val[19:16] = lab
+            self.write(self.map['PHASEARG'], int(val))
+            self.write(self.map['PHASECMD'], 0x04)
+            ret=self.read(self.map['PHASECMD'])
+            while ret != 0x00:
+                ret = self.read(self.map['PHASECMD'])
+            return self.read(self.map['PHASERES'])
         
         def set_amon(self, lab, value):
             self.l4reg(lab, 12, value)
@@ -207,7 +234,16 @@ class LAB4_Controller:
                 self.l4reg(lab4, 0, 1024)      #PCLK-1=0 : Vboot 
                 self.l4reg(lab4, 1, 1024)      #PCLK-1=1 : Vbsx
                 self.l4reg(lab4, 2, 1024)      #PCLK-1=2 : VanN
-                self.l4reg(lab4, 3, 1900)      #PCLK-1=3 : VadjN
+                cals = surf_calibrations.read_vadjn(self.dev.dna())
+                if cals == None:
+                    print "Using default VadjN of 1640."
+                    self.l4reg(lab4, 3, 1640)
+                else:
+                    if lab4 == 15:
+                        for i in xrange(12):
+                            self.l4reg(i,3,cals[i])
+                    else:
+                        self.l4reg(lab4, 3, cals[lab4])
                 self.l4reg(lab4, 4, 1024)      #PCLK-1=4 : Vbs 
                 self.l4reg(lab4, 5, 1100)      #PCLK-1=5 : Vbias 
                 self.l4reg(lab4, 6, 950)       #PCLK-1=6 : Vbias2 
@@ -252,6 +288,7 @@ class SURF(ocpci.Device):
             'PLLCTRL'      		: 0x00020,      ## this is a clock, PLL = phase locked loop 
             'SPICS'                     : 0x00024,      ## this is the spiss variable in the firmware doc 
             'PHASESEL'                  : 0x00028,
+            'DNA'                       : 0x0002C,
             'SPI_BASE'                  : 0x00030,
             'LAB4_CTRL_BASE'            : 0x10000,
 	    'LAB4_ROM_BASE'             : 0x20000,      
@@ -548,3 +585,12 @@ class SURF(ocpci.Device):
         ver = bf(self.read(self.map['VERSION']))
         print "Identification Register: %x (%c%c%c%c)" % (int(ident),ident[31:24],ident[23:16],ident[15:8],ident[7:0])
         print "Version Register: %d.%d.%d compiled %d/%d" % (ver[15:12], ver[11:8], ver[7:0], ver[28:24], ver[23:16])
+        print "Device DNA: %x" % self.dna()
+
+    def dna(self):
+        self.write(self.map['DNA'], 0x80000000)
+        dnaval=0
+        for i in xrange(57):
+            val=self.read(self.map['DNA'])
+            dnaval = (dnaval << 1) | val
+        return dnaval
