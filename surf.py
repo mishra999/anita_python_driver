@@ -53,17 +53,47 @@ class LAB4_Controller:
                 self.pb = picoblaze.PicoBlaze(self, self.map['pb'])
                 self.phasepb = picoblaze.PicoBlaze(self,self.map['PHASEPB'])
                 
+        def autotune_vadjn(self, lab):
+            self.set_tmon(lab, self.tmon['A1'])
+            vadjn = 1640
+            delta = 20            
+            self.l4reg(lab, 3, vadjn)            
+            width = self.scan_width(lab, 64)
+            oldwidth = width
+            print "Trial: vadjn %d width %f" % ( vadjn, width)
+            while abs(width-840) > 0.5:
+                if (width < 840):
+                    if (oldwidth > 840):
+                        delta = delta/2
+                        if delta < 1:
+                            delta = 1
+                    vadjn -= delta
+                else:
+                    if (oldwidth < 840):
+                        delta = delta/2
+                        if delta < 1:
+                            delta = 1
+                    vadjn += delta
+                oldwidth = width
+                self.l4reg(lab, 3, vadjn)
+                width = self.scan_width(lab, 64)
+                print "Trial: vadjn %d width %f" % ( vadjn, width)
+            return vadjn            
+                
         def scan_free(self):
             self.write(self.map['PHASECMD'], 0x01)
             
-        def scan_width(self, lab):
+        def scan_width(self, lab, trials=1):
             self.write(self.map['PHASEARG'], lab)
-            self.write(self.map['PHASECMD'], 0x02)
-            val = self.read(self.map['PHASECMD'])
-            while val != 0x00:
+            res = 0
+            for i in xrange(trials):
+                self.write(self.map['PHASECMD'], 0x02)
                 val = self.read(self.map['PHASECMD'])
-            return self.read(self.map['PHASERES'])                
-            
+                while val != 0x00:
+                    val = self.read(self.map['PHASECMD'])
+                res += self.read(self.map['PHASERES'])                
+            return res/(trials*1.0)
+        
         def set_amon(self, lab, value):
             self.l4reg(lab, 12, value)
 
