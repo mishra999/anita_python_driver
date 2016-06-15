@@ -4,6 +4,7 @@ import sys
 import time
 from bf import *   # imports the module bf, and creates references in the current namespace to all public objects defined by bf
 import spi
+import i2c
 import picoblaze
 import numpy as np
 
@@ -227,12 +228,40 @@ class SURF(ocpci.Device):
             'RFP_BASE'                  : 0x30000,
            }
 
+    i2c_periph = {'DAC'                 : 0x00,
+                  'RFP_0'               : 0x20,
+                  'RFP_1'               : 0x40,
+                  'RFP_2'               : 0x60,
+                  'RFP_3'               : 0x80}
+
     def __init__(self, path="/sys/class/uio/uio0"):
         ocpci.Device.__init__(self, path, 1*1024*1024)
         self.spi = spi.SPI(self, self.map['SPI_BASE'])
 	self.labc = LAB4_Controller(self, self.map['LAB4_CTRL_BASE'])
-	self.setupi2c()
-        self.Vped = 0x9C4
+	self.dac = i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['DAC'], 0x60)
+	self.ioexpander = i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['DAC'], 0x20)
+        '''
+        12 RFP circuits on 4 i2c buses. Slave address set by ADDR pin connection:
+        GND: 1001000
+        VDD: 1001001
+        SDA: 1001010 (not used)
+        SCL: 1001011 
+        '''
+        self.rfp = []
+        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_0'], 0x49) )
+        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_0'], 0x48) )
+        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_0'], 0x4B) )
+        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_1'], 0x49) )
+        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_1'], 0x48) )
+        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_1'], 0x4B) )
+        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_2'], 0x49) )
+        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_2'], 0x48) )
+        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_2'], 0x4B) )
+        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_3'], 0x49) )
+        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_3'], 0x48) )
+        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_3'], 0x4B) ) 
+
+        self.vped = 0x9C4
         
     def __repr__(self):
         return "<SURF at %s>" % self.path
@@ -377,27 +406,6 @@ class SURF(ocpci.Device):
         print "LAB4 runmode: %s" % ("enabled" if labcontrol[1] else "not enabled")
         print "LAB4 testpat: %s" % ("enabled" if not labreadout[4] else "not enabled")
 
-    def setupi2c(self):
-        #setup RFP_DAC
-        self.write(self.map['RFP_BASE']+0, 0x41)
-        self.write(self.map['RFP_BASE']+4, 0x00)
-        self.write(self.map['RFP_BASE']+8, 0x80)  #enable core
-        #setup RFP_0
-        self.write(self.map['RFP_BASE']+0x20, 0x41)
-        self.write(self.map['RFP_BASE']+0x24, 0x00)
-        self.write(self.map['RFP_BASE']+0x28, 0x80)
-        #setup RFP_1
-        self.write(self.map['RFP_BASE']+0x40, 0x41)
-        self.write(self.map['RFP_BASE']+0x44, 0x00)
-        self.write(self.map['RFP_BASE']+0x48, 0x80)
-        #setup RFP_2
-        self.write(self.map['RFP_BASE']+0x60, 0x41)
-        self.write(self.map['RFP_BASE']+0x64, 0x00)
-        self.write(self.map['RFP_BASE']+0x68, 0x80)       
-        #setup RFP_3
-        self.write(self.map['RFP_BASE']+0x80, 0x41)
-        self.write(self.map['RFP_BASE']+0x84, 0x00)
-        self.write(self.map['RFP_BASE']+0x88, 0x80)
 
     ''' NOT DONE YET, will move i2c control to a class
     def readi2cexpander(self, address=0x4D):
@@ -424,8 +432,6 @@ class SURF(ocpci.Device):
                 return 1
         self.write(self.map['RFP_BASE']+12, 0x68) #set RD, STO, and NACK
         print self.read(self.map['RFP_BASE']+12)
-    '''
-    
     def setupi2cexpander(self):
         config=[]
         config.append([0x40, 0x44, 0xFF])  #input latch register 0
@@ -449,52 +455,24 @@ class SURF(ocpci.Device):
                                 print 'error, no ACK'
                                 return dac*i+1
         return 0
-
+    '''
     def set_vped(self, value=0x9C4):
         val=bf(value)
-        dac_bytes=[0xC0, 0x5E, (0x8<<4) | (val[11:8]), val[7:0]]
-    
-        for i in range(0, len(dac_bytes)):
-            self.write(self.map['RFP_BASE']+12, dac_bytes[i])
-            if i==0:
-                self.write(self.map['RFP_BASE']+16, 0x90) #write to slave and start a write
-            elif i==len(dac_bytes)-1:
-                self.write(self.map['RFP_BASE']+16, 0x50) #write to slave and stop write
-            else:
-                self.write(self.map['RFP_BASE']+16, 0x10) #write to slave
-            while(self.read(self.map['RFP_BASE']+16) & 0x2):
-                print 'waiting for TIP'
-            if (self.read(self.map['RFP_BASE']+16) & 0x80):
-                print 'error, no ACK'
-                return 1
-        self.Vped=value
-        return 0        
-    
+        dac_bytes=[0x5E, (0x8<<4) | (val[11:8]), val[7:0]]
+        self.dac.write_seq(dac_bytes)
+        self.vped=value  #update vped value
+
     def set_rfp_vped(self, value=[0x9C4, 0x800, 0xA00]):
         val0=bf(value[0])
         val1=bf(value[1])
         val2=bf(value[2])
         dac_bytes=[]
-        dac_bytes.append([0xC0, 0x58, (0x8<<4) | (val0[11:8]), val0[7:0]])
-        dac_bytes.append([0xC0, 0x5A, (0x8<<4) | (val1[11:8]), val1[7:0]])
-        dac_bytes.append([0xC0, 0x5C, (0x8<<4) | (val2[11:8]), val2[7:0]])
-
-        for dac in range(0, len(dac_bytes)):
-                for i in range(0, len(dac_bytes[dac])):
-                        self.write(self.map['RFP_BASE']+12, dac_bytes[dac][i])
-                        if i==0:
-                                self.write(self.map['RFP_BASE']+16, 0x90) #write to slave and start a write
-                        elif i==len(dac_bytes[dac])-1:
-                                self.write(self.map['RFP_BASE']+16, 0x50) #write to slave and stop write
-                        else:
-                                self.write(self.map['RFP_BASE']+16, 0x10) #write to slave
-                        while(self.read(self.map['RFP_BASE']+16) & 0x2):
-                                print 'waiting for TIP'
-                        if (self.read(self.map['RFP_BASE']+16) & 0x80):
-                                print 'error, no ACK'
-                                return dac*i+1
-        return 0        
-        
+        dac_bytes.append([0x58, (0x8<<4) | (val0[11:8]), val0[7:0]])
+        dac_bytes.append([0x5A, (0x8<<4) | (val1[11:8]), val1[7:0]])
+        dac_bytes.append([0x5C, (0x8<<4) | (val2[11:8]), val2[7:0]])
+        for i in range(0, len(dac_bytes)):
+                self.dac.write_seq(dac_bytes[i])
+            
     def read_fifo(self, lab, address=0): 		
         val = bf(self.read(self.map['LAB4_ROM_BASE']+(lab<<11)+address))
         sample0 = val[11:0]
@@ -511,7 +489,7 @@ class SURF(ocpci.Device):
                 self.labc.force_trigger()
         labdata=np.zeros(samples)
         for i in range(0, int(samples), 2):
-               labdata[i], labdata[i+1] = self.read_fifo(lab) 
+                labdata[i], labdata[i+1] = self.read_fifo(lab) 
                
         if save:
             np.savetxt(filename, labdata, delimiter=',')
