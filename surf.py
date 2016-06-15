@@ -15,6 +15,11 @@ class LAB4_Controller:
 		'WILKMAX'			: 0x00010,
 		'TPCTRL'			: 0x00014,
 		'L4REG'				: 0x00018,
+                'PHASECMD'                      : 0x00020,
+                'PHASEARG'                      : 0x00024,
+                'PHASERES'                      : 0x00028,
+                'PHASEZERO'                     : 0x0002C,
+                'PHASEPB'                       : 0x0003C,
 		'TRIGGER'			: 0x00054,
                 'READOUT'                       : 0x00058,
                 'pb'				: 0x0007C,
@@ -45,7 +50,19 @@ class LAB4_Controller:
 		self.dev = dev
 		self.base = base
                 self.pb = picoblaze.PicoBlaze(self, self.map['pb'])
+                self.phasepb = picoblaze.PicoBlaze(self,self.map['PHASEPB'])
                 
+        def scan_free(self):
+            self.write(self.map['PHASECMD'], 0x01)
+            
+        def scan_width(self, lab):
+            self.write(self.map['PHASEARG'], lab)
+            self.write(self.map['PHASECMD'], 0x02)
+            val = self.read(self.map['PHASECMD'])
+            while val != 0x00:
+                val = self.read(self.map['PHASECMD'])
+            return self.read(self.map['PHASERES'])                
+            
         def set_amon(self, lab, value):
             self.l4reg(lab, 12, value)
 
