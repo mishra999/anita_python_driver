@@ -53,6 +53,27 @@ class LAB4_Controller:
 		self.base = base
                 self.pb = picoblaze.PicoBlaze(self, self.map['pb'])
                 self.phasepb = picoblaze.PicoBlaze(self,self.map['PHASEPB'])
+
+        def automatch_phab(self, lab):
+            labs = []
+            if lab == 15:
+                labs = range(12)
+            else:
+                labs = [lab]
+            # Find our start point.
+            sync_edge = self.scan_edge(12, 1)
+            print "Found sync edge: %d" % sync_edge
+            for i in labs:
+                # Find our PHAB sampling point.
+                self.set_tmon(i, self.tmon['WR_STRB'])
+                wr_edge = self.scan_edge(i, 1, sync_edge)
+                print "Found WR_STRB edge on LAB%d: %d" % (lab, wr_edge)
+                self.set_tmon(i, self.tmon['PHAB'])
+                phab = self.scan_value(i, wr_edge) & 0x01
+                while phab != 1:
+                    print "LAB%d wrong PHAB phase, resetting." % i
+                    self.clr_phase(i)
+                    phab = self.scan_value(i, wr_edge) & 0x01
                 
         def autotune_vadjn(self, lab):
             self.set_tmon(lab, self.tmon['A1'])
