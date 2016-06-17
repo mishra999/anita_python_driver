@@ -1,4 +1,7 @@
-#module for open cores i2c
+'''
+06-2016
+Class to manage the OpenCores I2C controller core
+'''
 
 class I2C:
     map = {'PREL'    : 0x00,
@@ -92,6 +95,13 @@ class I2C:
                 self.write(data[i], last_byte=True)
             else:
                 self.write(data[i])
-
-    
-                    
+    '''
+    read a byte sequence, specify number of bytes
+    '''     
+    def read_seq(self, num_bytes):
+        seq = []
+        self.start(read_mode=True)
+        while len(seq) < (num_bytes - 1):
+            seq.append(self.read())
+        seq.append(self.read(last_byte=True))
+        return seq            

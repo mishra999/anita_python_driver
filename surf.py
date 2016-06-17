@@ -2,12 +2,12 @@ import ocpci
 import struct
 import sys
 import time
-from bf import *   # imports the module bf, and creates references in the current namespace to all public objects defined by bf
+from bf import *   
 import spi
-import i2c
 import picoblaze
 import numpy as np
 import surf_calibrations
+import surf_i2c
 
 class LAB4_Controller:
         map = { 'CONTROL'			: 0x00000,
@@ -54,7 +54,7 @@ class LAB4_Controller:
                 self.pb = picoblaze.PicoBlaze(self, self.map['pb'])
                 self.phasepb = picoblaze.PicoBlaze(self,self.map['PHASEPB'])
 
-        def automatch_phab(self, lab):
+        def automatch_phab(self, lab, match=1):
             labs = []
             if lab == 15:
                 labs = range(12)
@@ -70,7 +70,7 @@ class LAB4_Controller:
                 print "Found WR_STRB edge on LAB%d: %d" % (lab, wr_edge)
                 self.set_tmon(i, self.tmon['PHAB'])
                 phab = self.scan_value(i, wr_edge) & 0x01
-                while phab != 1:
+                while phab != match:
                     print "LAB%d wrong PHAB phase, resetting." % i
                     self.clr_phase(i)
                     phab = self.scan_value(i, wr_edge) & 0x01
@@ -316,38 +316,12 @@ class SURF(ocpci.Device):
             'RFP_BASE'                  : 0x30000,
            }
 
-    i2c_periph = {'DAC'                 : 0x00,
-                  'RFP_0'               : 0x20,
-                  'RFP_1'               : 0x40,
-                  'RFP_2'               : 0x60,
-                  'RFP_3'               : 0x80}
 
     def __init__(self, path="/sys/class/uio/uio0"):
         ocpci.Device.__init__(self, path, 1*1024*1024)
-        self.spi = spi.SPI(self, self.map['SPI_BASE'])
+        self.spi  = spi.SPI(self, self.map['SPI_BASE'])
 	self.labc = LAB4_Controller(self, self.map['LAB4_CTRL_BASE'])
-	self.dac = i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['DAC'], 0x60)
-	self.ioexpander = i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['DAC'], 0x20)
-        '''
-        12 RFP circuits on 4 i2c buses. Slave address set by ADDR pin connection:
-        GND: 1001000
-        VDD: 1001001
-        SDA: 1001010 (not used)
-        SCL: 1001011 
-        '''
-        self.rfp = []
-        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_0'], 0x49) )
-        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_0'], 0x48) )
-        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_0'], 0x4B) )
-        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_1'], 0x49) )
-        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_1'], 0x48) )
-        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_1'], 0x4B) )
-        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_2'], 0x49) )
-        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_2'], 0x48) )
-        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_2'], 0x4B) )
-        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_3'], 0x49) )
-        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_3'], 0x48) )
-        self.rfp.append(i2c.I2C(self, self.map['RFP_BASE'] + self.i2c_periph['RFP_3'], 0x4B) ) 
+	self.i2c  = surf_i2c.SURFi2c(self, self.map['RFP_BASE'])
 
         self.vped = 0x9C4
         
@@ -545,21 +519,11 @@ class SURF(ocpci.Device):
         return 0
     '''
     def set_vped(self, value=0x9C4):
-        val=bf(value)
-        dac_bytes=[0x5E, (0x8<<4) | (val[11:8]), val[7:0]]
-        self.dac.write_seq(dac_bytes)
+        self.i2c.set_vped(value)
         self.vped=value  #update vped value
 
     def set_rfp_vped(self, value=[0x9C4, 0x800, 0xA00]):
-        val0=bf(value[0])
-        val1=bf(value[1])
-        val2=bf(value[2])
-        dac_bytes=[]
-        dac_bytes.append([0x58, (0x8<<4) | (val0[11:8]), val0[7:0]])
-        dac_bytes.append([0x5A, (0x8<<4) | (val1[11:8]), val1[7:0]])
-        dac_bytes.append([0x5C, (0x8<<4) | (val2[11:8]), val2[7:0]])
-        for i in range(0, len(dac_bytes)):
-                self.dac.write_seq(dac_bytes[i])
+        self.i2c.set_rfp_vped(value)
             
     def read_fifo(self, lab, address=0): 		
         val = bf(self.read(self.map['LAB4_ROM_BASE']+(lab<<11)+address))
