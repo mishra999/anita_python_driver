@@ -190,7 +190,6 @@ class SURFi2c:
                     my_rfp[i].data[j] = my_rfp[i].data[j][14:0]
         plt.ion()
         print my_rfp[0].data
-        #for i in range(0, 12):
         plt.plot(my_rfp[0].time, my_rfp[0].data)
 
 class RFPdata:
