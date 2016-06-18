@@ -465,59 +465,11 @@ class SURF(ocpci.Device):
         print " Full LED   : %8.8x" % (self.read(self.map['LED']) & 0xFFFFFFFF)
         print " Int Mask   : %8.8x" % (self.read(self.map['INTMASK']) & 0xFFFFFFFF)
         print "**********************"
+        self.i2c.read_dac()
+        print "**********************"
         print "LAB4 runmode: %s" % ("enabled" if labcontrol[1] else "not enabled")
         print "LAB4 testpat: %s" % ("enabled" if not labreadout[4] else "not enabled")
-
-
-    ''' NOT DONE YET, will move i2c control to a class
-    def readi2cexpander(self, address=0x4D):
-        self.write(self.map['RFP_BASE']+12, 0x40) #address the device
-        self.write(self.map['RFP_BASE']+16, 0x90) #start write to core
-        while(self.read(self.map['RFP_BASE']+16) & 0x2):
-                print 'waiting for TIP'
-        if (self.read(self.map['RFP_BASE']+16) & 0x80):
-                print 'error, no ACK'
-                return 1
-        self.write(self.map['RFP_BASE']+12, address) #send address to read (interupt status register=0x4d)
-        self.write(self.map['RFP_BASE']+16, 0x10) #write to slave
-        while(self.read(self.map['RFP_BASE']+16) & 0x2):
-                print 'waiting for TIP'
-        if (self.read(self.map['RFP_BASE']+16) & 0x80):
-                print 'error, no ACK'
-                return 1
-        self.write(self.map['RFP_BASE']+12, 0x41) #address the device (+read bit)
-        self.write(self.map['RFP_BASE']+16, 0x90) #start write to core
-        while(self.read(self.map['RFP_BASE']+16) & 0x2):
-                print 'waiting for TIP'
-        if (self.read(self.map['RFP_BASE']+16) & 0x80):
-                print 'error, no ACK'
-                return 1
-        self.write(self.map['RFP_BASE']+12, 0x68) #set RD, STO, and NACK
-        print self.read(self.map['RFP_BASE']+12)
-    def setupi2cexpander(self):
-        config=[]
-        config.append([0x40, 0x44, 0xFF])  #input latch register 0
-        config.append([0x40, 0x45, 0xFF])  #input latch register 1
-        config.append([0x40, 0x46, 0xFF])  #PU/PD enable register 0
-        config.append([0x40, 0x47, 0xFF])  #PU/PD enable register 1
-        config.append([0x40, 0x48, 0xFF])  #PU/PD selection register 0
-        config.append([0x40, 0x49, 0xFF])  #PU/PD selection register 1
-        for dac in range(0, len(config)):
-                for i in range(0, len(config[dac])):
-                        self.write(self.map['RFP_BASE']+12, config[dac][i])
-                        if i==0:
-                                self.write(self.map['RFP_BASE']+16, 0x90) #write to slave and start a write
-                        elif i==len(config[dac])-1:
-                                self.write(self.map['RFP_BASE']+16, 0x50) #write to slave and stop write
-                        else:
-                                self.write(self.map['RFP_BASE']+16, 0x10) #write to slave
-                        while(self.read(self.map['RFP_BASE']+16) & 0x2):
-                                print 'waiting for TIP'
-                        if (self.read(self.map['RFP_BASE']+16) & 0x80):
-                                print 'error, no ACK'
-                                return dac*i+1
-        return 0
-    '''
+    
     def set_vped(self, value=0x9C4):
         self.i2c.set_vped(value)
         self.vped=value  #update vped value
