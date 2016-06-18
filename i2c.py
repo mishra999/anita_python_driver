@@ -45,7 +45,7 @@ class I2C:
     '''
     def check_ack(self):
         if (self.dev.read(self.base + self.map['SR']) & self.stat['RXACK']):
-            raise Exception('No ACK from slave address: %s' % self.address)
+            raise Exception('No ACK from slave address: 0x{0:x}'.format(self.address))
             return 1
         else:
             return 0
