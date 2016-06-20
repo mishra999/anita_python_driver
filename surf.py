@@ -67,7 +67,7 @@ class LAB4_Controller:
                 # Find our PHAB sampling point.
                 self.set_tmon(i, self.tmon['WR_STRB'])
                 wr_edge = self.scan_edge(i, 1, sync_edge)
-                print "Found WR_STRB edge on LAB%d: %d" % (lab, wr_edge)
+                print "Found WR_STRB edge on LAB%d: %d" % (i, wr_edge)
                 self.set_tmon(i, self.tmon['PHAB'])
                 phab = self.scan_value(i, wr_edge) & 0x01
                 while phab != match:
@@ -185,16 +185,27 @@ class LAB4_Controller:
         '''
         reset FIFO on FPGA, which holds LAB4 data
         '''
-        def fifo_reset(self, force=False):
+        def reset_fifo(self, force=False, reset_readout=True):
             ctrl = bf(self.read(self.map['CONTROL']))
             if ctrl[1] and not force:
                 print 'cannot reset FIFO: LAB4 in run mode'
                 return 1
             else:
+                if reset_readout:
+                        self.run_mode(0)
                 rdout = bf(self.read(self.map['READOUT']))
-                rdout[2] = 1
+                rdout[1] = 1
+                rdout[2] = reset_readout
                 self.write(self.map['READOUT'], rdout) 
                 return 0
+        '''
+        reset Wilkinson ramp controller
+        '''
+        def reset_ramp(self):
+                ctrl = bf(self.read(self.map['CONTROL']))
+                ctrl[8] = 1
+                self.write(self.map['CONTROL'], ctrl)
+        
         '''
         enables LAB run mode (sample+digitize+readout)
         '''    
@@ -218,9 +229,6 @@ class LAB4_Controller:
                 rdout[4] = 1
                 self.write(self.map['READOUT'], rdout)
 
-        '''
-        set serial data test-pattern (12 bits)
-        '''
         def testpattern(self, lab4, pattern=0xBA6):
             self.l4reg(lab4, 13, pattern)
             return [lab4, pattern]
@@ -229,7 +237,20 @@ class LAB4_Controller:
 		return self.dev.read(addr + self.base)
     
 	def write(self, addr, value):
-		self.dev.write(addr + self.base, value)                
+		self.dev.write(addr + self.base, value)
+
+        def check_fifo(self, check_mode=0):
+                rdout = bf(self.read(self.map['READOUT']))
+                '''
+                check_mode = 0, check if data available on any fifo (not empty)
+                check_mode = 1, check individual readout fifo empties, return 12 bits
+                '''
+                if check_mode:
+                        return rdout[27:16]    
+                elif not check_mode and rdout[3]:
+                        return True
+                else:
+                        return False
                 
 	def l4reg(self, lab, addr, value, verbose=False):
 		ctrl = bf(self.read(self.map['CONTROL']))
@@ -271,7 +292,9 @@ class LAB4_Controller:
                 self.l4reg(lab4, 7, 1024)      #PCLK-1=7 : CMPbias 
                 self.l4reg(lab4, 8, 2700)      #PCLK-1=8 : VadjP 
                 self.l4reg(lab4, 9, 1000)      #PCLK-1=9 : Qbias 
-                self.l4reg(lab4, 10, 2780)     #PCLK-1=10 : ISEL 
+                #self.l4reg(lab4, 10, 2780)     #PCLK-1=10 : ISEL (gives ~20 us long ramp)
+                #self.l4reg(lab4, 10, 2350)     #PCLK-1=10 : ISEL (gives ~5 us long ramp)
+                self.l4reg(lab4, 10, 2580)     #PCLK-1=10 : ISEL (gives ~10 us long ramp)
                 self.l4reg(lab4, 11, 4090)     #PCLK-1=11 : VtrimT 
                 self.l4reg(lab4, 16, 0)        #patrick said to add 6/9
                 
@@ -370,7 +393,6 @@ class SURF(ocpci.Device):
 
     def list_to_string(self,list):
         return "".join(map(str,list))
-
 				
     def led_one(self,led_num,value):
         led_current = bf(self.read(self.map['LED']))
@@ -473,33 +495,55 @@ class SURF(ocpci.Device):
     def set_vped(self, value=0x9C4):
         self.i2c.set_vped(value)
         self.vped=value  #update vped value
-
-    def set_rfp_vped(self, value=[0x9C4, 0x800, 0xA00]):
-        self.i2c.set_rfp_vped(value)
             
     def read_fifo(self, lab, address=0): 		
         val = bf(self.read(self.map['LAB4_ROM_BASE']+(lab<<11)+address))
-        sample0 = val[11:0]
-        sample1 = val[27:16]
-        #print 'LAB addr', lab, ', samples =', hex(sample0), hex(sample1)
-        return sample0, sample1
+        print hex(val[31:0])
+        sample0  = val[11:0]
+        sample1  = val[27:16]
+        return int(sample0), int(sample1)
 
-    def log_lab(self, lab, samples=128, force_trig=False, save=False, filename=''):
-        if save==True and len(filename)<=1:
-                timestr=time.strftime('%Y%m%d-%H%M%S')
-                filename= timestr+'_LAB'+str(lab)+'.dat'
-
+    def log_lab(self, lab, samples=1024, force_trig=False, save=False, filename=''):
+        labs=[]
+        if lab==15:
+                labs = range(12)
+        else:
+                labs = [lab]
+  
         if force_trig:
                 self.labc.force_trigger()
-        labdata=np.zeros(samples)
-        for i in range(0, int(samples), 2):
-                labdata[i], labdata[i+1] = self.read_fifo(lab) 
-               
-        if save:
-            np.savetxt(filename, labdata, delimiter=',')
-        return labdata
 
-    def scope_lab(self, lab, samples, force_trig=True, frames=1, refresh=0.1):
+        board_data = []
+        for chan in labs:
+                labdata=np.zeros(samples)
+                '''
+                if (self.labc.check_fifo(1) & (1<<chan) ):
+                        print 'lab %i fifo is empty' % chan
+                        continue
+                '''
+                for i in range(0, int(samples), 2):
+                        if (self.labc.check_fifo(1) & (1<<chan) ):
+                                print 'lab %i fifo was emptied, read out %i samples' % (chan, i)
+                                break
+                        labdata[i+1], labdata[i] = self.read_fifo(chan)
+                        
+                board_data.append(labdata )
+
+        #save some data to a flat text file
+        if save:
+                if len(filename)<=1:
+                        timestr=time.strftime('%Y%m%d-%H%M%S')
+                        filename= timestr+'_LAB'+str(lab)+'.dat'
+                
+                with open(filename, 'w') as filew:
+                        for j in range(0, samples):
+                                for i in range(0, len(board_data)):
+                                        filew.write(str(board_data[i][j]))
+                                        filew.write('\t')
+                                filew.write('\n')
+        return board_data
+
+    def scope_lab(self, lab, samples=1024, force_trig=True, frames=1, refresh=0.1):
         import matplotlib.pyplot as plt
         plt.ion()
     
@@ -509,13 +553,16 @@ class SURF(ocpci.Device):
                 plt.clf()
                 plot_data = self.log_lab(lab=lab, samples=samples, force_trig=True)
                 #plot_data = np.sin(x+np.random.uniform(0,np.pi))+np.random.normal(0, .1)
-                plt.plot(x, plot_data, '-')
+                for chan in range(0, len(plot_data)):
+                        plt.plot(x, plot_data[chan], '--', label='LAB{}'.format(chan))
+                #plt.legend(numpoints=1, ncol=6, prop={'size':8})
                 if i == (frames-1):
                         raw_input('press enter to close')
                         plt.close(fig)
                         plt.ioff()
                 else:
                         plt.pause(refresh)
+                        
                   
     def identify(self):
         ident = bf(self.read(self.map['IDENT']))
@@ -531,3 +578,5 @@ class SURF(ocpci.Device):
             val=self.read(self.map['DNA'])
             dnaval = (dnaval << 1) | val
         return dnaval
+
+        
