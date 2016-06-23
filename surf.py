@@ -74,6 +74,46 @@ class LAB4_Controller:
                     print "LAB%d wrong PHAB phase, resetting." % i
                     self.clr_phase(i)
                     phab = self.scan_value(i, wr_edge) & 0x01
+
+        def autotune_vadjp(self, lab, initial=2700):
+                self.set_tmon(lab, self.tmon['SSPin'])
+                rising=self.scan_edge(lab, 1, 0)
+                falling=self.scan_edge(lab, 0, rising+100)
+                width=falling-rising
+                if width < 0:
+                        print "Width less than 0, do something."
+                        return
+                vadjp=initial
+                delta=20
+                self.l4reg(lab, 8, vadjp)
+                self.set_tmon(lab, self.tmon['SSPout'])
+                rising=self.scan_edge(lab, 1, 0)
+                falling=self.scan_edge(lab, 0, rising+100)
+                trial=falling-rising
+                if trial < 0:
+                        print "Trial width less than 0, do something."
+                        return
+                oldtrial=trial
+                while abs(trial-width) > 2:
+                        if trial < width:
+                                if oldtrial > width:
+                                        delta=delta/2
+                                        if delta < 1:
+                                                delta = 1
+                                vadjp += delta
+                        else:
+                                if oldtrial < width:
+                                        delta=delta/2
+                                        if delta < 1:
+                                                delta = 1
+                                vadjp -= delta
+                        oldtrial = trial
+                        self.l4reg(lab, 8, vadjp)
+                        rising=self.scan_edge(lab, 1, 0)
+                        falling=self.scan_edge(lab, 0, rising+100)
+                        trial=falling-rising
+                        print "Trial: vadjp %d width %f target %f" % ( vadjp, trial, width)
+                return vadjp
                 
         def autotune_vadjn(self, lab):
             self.set_tmon(lab, self.tmon['A1'])
@@ -251,7 +291,15 @@ class LAB4_Controller:
                         return True
                 else:
                         return False
-                
+
+        def dll(self, lab4, mode=False):
+                '''enable/disable dll by setting VanN level'''
+                if mode:
+                        self.l4reg(lab4, 2, 0)      #PCLK-1=2 : VanN
+
+                else:
+                        self.l4reg(lab4, 2, 1024)
+                        
 	def l4reg(self, lab, addr, value, verbose=False):
 		ctrl = bf(self.read(self.map['CONTROL']))
 		if ctrl[1]:  #should be checking ctrl[2], which indicates run-mode. but not working 6/9
@@ -276,35 +324,48 @@ class LAB4_Controller:
                 self.l4reg(lab4, 0, 1024)      #PCLK-1=0 : Vboot 
                 self.l4reg(lab4, 1, 1024)      #PCLK-1=1 : Vbsx
                 self.l4reg(lab4, 2, 1024)      #PCLK-1=2 : VanN
-                cals = surf_calibrations.read_vadjn(self.dev.dna())
-                if cals == None:
-                    print "Using default VadjN of 1640."
-                    self.l4reg(lab4, 3, 1640)
+                calNs = surf_calibrations.read_vadjn(self.dev.dna())
+                if calNs == None:
+                    print "Using default VadjN of 1671."
+                    self.l4reg(lab4, 3, 1671)
                 else:
                     if lab4 == 15:
                         for i in xrange(12):
-                            self.l4reg(i,3,cals[i])
+                            self.l4reg(i,3,calNs[i])
                     else:
-                        self.l4reg(lab4, 3, cals[lab4])
+                        self.l4reg(lab4, 3, calNs[lab4])
+
+                calPs = surf_calibrations.read_vadjp(self.dev.dna())
+                if calPs == None:
+                    print "Using default VadjP of 2700."
+                    self.l4reg(lab4, 8, 2700)
+                else:
+                    if lab4 == 15:
+                        for i in xrange(12):
+                            self.l4reg(i,8,calPs[i])
+                    else:
+                        self.l4reg(lab4, 8, calPs[lab4])
+
                 self.l4reg(lab4, 4, 1024)      #PCLK-1=4 : Vbs 
                 self.l4reg(lab4, 5, 1100)      #PCLK-1=5 : Vbias 
                 self.l4reg(lab4, 6, 950)       #PCLK-1=6 : Vbias2 
                 self.l4reg(lab4, 7, 1024)      #PCLK-1=7 : CMPbias 
-                self.l4reg(lab4, 8, 2700)      #PCLK-1=8 : VadjP 
                 self.l4reg(lab4, 9, 1000)      #PCLK-1=9 : Qbias 
                 #self.l4reg(lab4, 10, 2780)     #PCLK-1=10 : ISEL (gives ~20 us long ramp)
                 #self.l4reg(lab4, 10, 2350)     #PCLK-1=10 : ISEL (gives ~5 us long ramp)
                 self.l4reg(lab4, 10, 2580)     #PCLK-1=10 : ISEL (gives ~10 us long ramp)
                 self.l4reg(lab4, 11, 4090)     #PCLK-1=11 : VtrimT 
                 self.l4reg(lab4, 16, 0)        #patrick said to add 6/9
-                
+
                 for i in range (0, 128):       #PCLK-1=<255:383> : dTrim DACS
-                        self.l4reg(lab4, i+256, 0)
-                
+                        #self.l4reg(lab4, i+256, 0)
+                        self.l4reg(lab4, i+256, 1500)
+
                 '''timing register default values'''        
                 self.l4reg(lab4, 384, 95)      #PCLK-1=384 : wr_strb_le 
                 self.l4reg(lab4, 385, 0)       #PCLK-1=385 : wr_strb_fe 
-                self.l4reg(lab4, 386, 120)     #PCLK-1=386 : sstoutfb 
+                #self.l4reg(lab4, 386, 120)     #PCLK-1=386 : sstoutfb
+                self.l4reg(lab4, 386, 105)     #PCLK-1=386 : sstoutfb 
                 self.l4reg(lab4, 387, 0)       #PCLK-1=387 : wr_addr_sync 
                 self.l4reg(lab4, 388, 38)      #PCLK-1=388 : tmk_s1_le  
                 self.l4reg(lab4, 389, 86)      #PCLK-1=389 : tmk_s1_fe 
@@ -312,7 +373,7 @@ class LAB4_Controller:
                 self.l4reg(lab4, 391, 20)      #PCLK-1=391 : tmk_s2_fe
                 self.l4reg(lab4, 392, 35)      #PCLK-1=392 : phase_le -- was 45 6/8
                 self.l4reg(lab4, 393, 75)      #PCLK-1=393 : phase_fe -- was 85 6/8
-                self.l4reg(lab4, 394, 92)      #PCLK-1=394 : sspin_le
+                self.l4reg(lab4, 394, 104)     #PCLK-1=394 : sspin_le --maybe push up to 104 to squeek out extra ABW (was at 92)
                 self.l4reg(lab4, 395, 10)      #PCLK-1=395 : sspin_fe
 
                 '''default test pattern'''
@@ -498,9 +559,9 @@ class SURF(ocpci.Device):
             
     def read_fifo(self, lab, address=0): 		
         val = bf(self.read(self.map['LAB4_ROM_BASE']+(lab<<11)+address))
-        print hex(val[31:0])
-        sample0  = val[11:0]
-        sample1  = val[27:16]
+        #print hex(val[31:0])
+        sample0  = val[15:0]
+        sample1  = val[31:16]
         return int(sample0), int(sample1)
 
     def log_lab(self, lab, samples=1024, force_trig=False, save=False, filename=''):
@@ -515,7 +576,7 @@ class SURF(ocpci.Device):
 
         board_data = []
         for chan in labs:
-                labdata=np.zeros(samples)
+                labdata=np.zeros(samples, dtype=np.int)
                 '''
                 if (self.labc.check_fifo(1) & (1<<chan) ):
                         print 'lab %i fifo is empty' % chan
@@ -554,7 +615,7 @@ class SURF(ocpci.Device):
                 plot_data = self.log_lab(lab=lab, samples=samples, force_trig=True)
                 #plot_data = np.sin(x+np.random.uniform(0,np.pi))+np.random.normal(0, .1)
                 for chan in range(0, len(plot_data)):
-                        plt.plot(x, plot_data[chan], '--', label='LAB{}'.format(chan))
+                        plt.plot(x, np.bitwise_and(plot_data[chan], 0x0FFF), '--', label='LAB{}'.format(chan))
                 #plt.legend(numpoints=1, ncol=6, prop={'size':8})
                 if i == (frames-1):
                         raw_input('press enter to close')

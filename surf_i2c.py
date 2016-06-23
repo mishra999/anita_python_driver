@@ -69,23 +69,34 @@ class SURFi2c:
     def wait(self, seconds=0.5):
         time.sleep(seconds)
         
-    def set_vped(self, value):
+    def set_vped(self, value, eeprom=False):
         val=bf(value)
-        dac_bytes=[0x5E, (0x8<<4) | (val[11:8]), val[7:0]]
+        if eeprom:
+            dac_bytes=[0x5E, (0x8<<4) | (val[11:8]), val[7:0]]
+        else:
+            dac_bytes=[0x46, (0x8<<4) | (val[11:8]), val[7:0]]
         self.dac.write_seq(dac_bytes)
-        self.wait()
+        if eeprom:
+            self.wait()
 
-    def set_rfp_vped(self, value=[0x9C4, 0x578, 0x578]):
+    def set_rfp_vped(self, value=[0x9C4, 0x578, 0x578], eeprom=False):
         val0=bf(value[0])
         val1=bf(value[1])
         val2=bf(value[2])
         dac_bytes=[]
-        dac_bytes.append([0x58, (0x8<<4) | (val0[11:8]), val0[7:0]])
-        dac_bytes.append([0x5A, (0x8<<4) | (val1[11:8]), val1[7:0]])
-        dac_bytes.append([0x5C, (0x8<<4) | (val2[11:8]), val2[7:0]])
+        if eeprom:
+            dac_bytes.append([0x58, (0x8<<4) | (val0[11:8]), val0[7:0]])
+            dac_bytes.append([0x5A, (0x8<<4) | (val1[11:8]), val1[7:0]])
+            dac_bytes.append([0x5C, (0x8<<4) | (val2[11:8]), val2[7:0]])
+        else:
+            dac_bytes.append([0x40, (0x8<<4) | (val0[11:8]), val0[7:0]])
+            dac_bytes.append([0x42, (0x8<<4) | (val1[11:8]), val1[7:0]])
+            dac_bytes.append([0x44, (0x8<<4) | (val2[11:8]), val2[7:0]])   
         for i in range(0, len(dac_bytes)):
-            self.dac.write_seq(dac_bytes[i])   
-            self.wait() #time delay required to write to eeprom! (can be better handled, surely)
+            self.dac.write_seq(dac_bytes[i])
+            if eeprom:
+                self.wait() #time delay required to write to eeprom! (can be better handled, surely)
+                
     def read_dac(self):
         self.dac.start(read_mode=True)
         dac_bytes=self.dac.read_seq(24)
@@ -127,19 +138,19 @@ class SURFi2c:
         #configure all rfp channels similarly:
         for i in range(0, 12):
             self.rfp[i].write_seq([rfp_config_register, config_hi, config_lo])
-            self.wait(0.02)
+            self.wait(0.01)
             #verify write (NOTE: top bit different for read/write in config reguster, so not compared!)
             ########  ( the top bit 15: indicates a `conversion in process' if [0] or not if [1] )
             if self.read_rfp(rfp_config_register, i)[14:0] != bf((config_hi << 8) | config_lo)[14:0]:
                 print 'rfp %i error: write/read mismatch to config register' % i
 
             self.rfp[i].write_seq([rfp_lothresh_register, bf(thresh_lo)[15:8], bf(thresh_lo)[7:0]])
-            self.wait(0.02)
+            self.wait(0.01)
             if self.read_rfp(rfp_lothresh_register, i)[15:0] != bf(thresh_lo)[15:0]:
                 print 'rfp %i error: write/read mismatch to low-thresh register' % i
 
             self.rfp[i].write_seq([rfp_hithresh_register, bf(thresh_hi)[15:8], bf(thresh_hi)[7:0]])
-            self.wait(0.02)
+            self.wait(0.01)
             if self.read_rfp(rfp_hithresh_register, i)[15:0] != bf(thresh_hi)[15:0]:
                 print 'rfp %i error: write/read mismatch to hi-thresh register' % i
 
@@ -161,7 +172,7 @@ class SURFi2c:
 
         for i in range(0, len(config)):
             self.ioexpander.write_seq(config[i])
-            self.wait(0.1)
+            self.wait(0.05)
             
     def default_config(self):
         self.config_ioexpander()
