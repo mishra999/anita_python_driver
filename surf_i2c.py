@@ -78,6 +78,7 @@ class SURFi2c:
         self.dac.write_seq(dac_bytes)
         if eeprom:
             self.wait()
+        self.wait(0.1)
 
     def set_rfp_vped(self, value=[0x9C4, 0x578, 0x578], eeprom=False):
         val0=bf(value[0])
@@ -96,7 +97,8 @@ class SURFi2c:
             self.dac.write_seq(dac_bytes[i])
             if eeprom:
                 self.wait() #time delay required to write to eeprom! (can be better handled, surely)
-                
+            self.wait(0.1)
+            
     def read_dac(self):
         self.dac.start(read_mode=True)
         dac_bytes=self.dac.read_seq(24)

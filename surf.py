@@ -279,25 +279,38 @@ class LAB4_Controller:
 	def write(self, addr, value):
 		self.dev.write(addr + self.base, value)
 
-        def check_fifo(self, check_mode=0):
+        def check_fifo(self, check_fifos=False):
                 rdout = bf(self.read(self.map['READOUT']))
                 '''
                 check_mode = 0, check if data available on any fifo (not empty)
                 check_mode = 1, check individual readout fifo empties, return 12 bits
                 '''
-                if check_mode:
+                if check_fifos:
                         return rdout[27:16]    
-                elif not check_mode and rdout[3]:
-                        return True
                 else:
-                        return False
+                        return rdout[3]
 
         def dll(self, lab4, mode=False):
                 '''enable/disable dll by setting VanN level'''
                 if mode:
+                        self.run_mode(0)
+                        '''turn off internal Vadjn buffer bias'''
                         self.l4reg(lab4, 2, 0)      #PCLK-1=2 : VanN
+                        
+                        calFbs = surf_calibrations.read_vtrimfb(self.dev.dna())
+                        if calFbs == None:
+                                print "Using default Vtrimfb of 1300."
+                                self.l4reg(lab4, 11, 1300)
+                        else:
+                                print "Using cal file for Vtrimfb's"
+                                if lab4 == 15:
+                                        for i in xrange(12):
+                                                self.l4reg(i,11,calFbs[i])
+                                else:
+                                        self.l4reg(lab4, 11, calFbs[lab4]) 
 
                 else:
+                        '''turn on internal Vadjn buffer bias'''
                         self.l4reg(lab4, 2, 1024)
                         
 	def l4reg(self, lab, addr, value, verbose=False):
@@ -329,6 +342,7 @@ class LAB4_Controller:
                     print "Using default VadjN of 1671."
                     self.l4reg(lab4, 3, 1671)
                 else:
+                    print "Using cal file for VadjN's"
                     if lab4 == 15:
                         for i in xrange(12):
                             self.l4reg(i,3,calNs[i])
@@ -340,6 +354,7 @@ class LAB4_Controller:
                     print "Using default VadjP of 2700."
                     self.l4reg(lab4, 8, 2700)
                 else:
+                    print "Using cal file for VadjP's"
                     if lab4 == 15:
                         for i in xrange(12):
                             self.l4reg(i,8,calPs[i])
@@ -354,18 +369,30 @@ class LAB4_Controller:
                 #self.l4reg(lab4, 10, 2780)     #PCLK-1=10 : ISEL (gives ~20 us long ramp)
                 #self.l4reg(lab4, 10, 2350)     #PCLK-1=10 : ISEL (gives ~5 us long ramp)
                 self.l4reg(lab4, 10, 2580)     #PCLK-1=10 : ISEL (gives ~10 us long ramp)
-                self.l4reg(lab4, 11, 4090)     #PCLK-1=11 : VtrimT 
+
+                calFbs = surf_calibrations.read_vtrimfb(self.dev.dna())
+                if calFbs == None:
+                        print "Using default Vtrimfb of 1350."
+                        self.l4reg(lab4, 11, 1350)
+                else:
+                        print "Using cal file for Vtrimfb's"
+                        if lab4 == 15:
+                                for i in xrange(12):
+                                        self.l4reg(i,11,calFbs[i])
+                        else:
+                                self.l4reg(lab4, 11, calFbs[lab4])
+                                        
                 self.l4reg(lab4, 16, 0)        #patrick said to add 6/9
 
                 for i in range (0, 128):       #PCLK-1=<255:383> : dTrim DACS
                         #self.l4reg(lab4, i+256, 0)
-                        self.l4reg(lab4, i+256, 1500)
+                        self.l4reg(lab4, i+256, 1600)
 
                 '''timing register default values'''        
                 self.l4reg(lab4, 384, 95)      #PCLK-1=384 : wr_strb_le 
                 self.l4reg(lab4, 385, 0)       #PCLK-1=385 : wr_strb_fe 
                 #self.l4reg(lab4, 386, 120)     #PCLK-1=386 : sstoutfb
-                self.l4reg(lab4, 386, 105)     #PCLK-1=386 : sstoutfb 
+                self.l4reg(lab4, 386, 104)     #PCLK-1=386 : sstoutfb --optimized for lab0 on canoes, to be generalized 
                 self.l4reg(lab4, 387, 0)       #PCLK-1=387 : wr_addr_sync 
                 self.l4reg(lab4, 388, 38)      #PCLK-1=388 : tmk_s1_le  
                 self.l4reg(lab4, 389, 86)      #PCLK-1=389 : tmk_s1_fe 
@@ -373,7 +400,7 @@ class LAB4_Controller:
                 self.l4reg(lab4, 391, 20)      #PCLK-1=391 : tmk_s2_fe
                 self.l4reg(lab4, 392, 35)      #PCLK-1=392 : phase_le -- was 45 6/8
                 self.l4reg(lab4, 393, 75)      #PCLK-1=393 : phase_fe -- was 85 6/8
-                self.l4reg(lab4, 394, 104)     #PCLK-1=394 : sspin_le --maybe push up to 104 to squeek out extra ABW (was at 92)
+                self.l4reg(lab4, 394, 92)      #PCLK-1=394 : sspin_le --maybe push up to 104 to squeek out extra ABW (was at 92)
                 self.l4reg(lab4, 395, 10)      #PCLK-1=395 : sspin_fe
 
                 '''default test pattern'''
@@ -559,12 +586,12 @@ class SURF(ocpci.Device):
             
     def read_fifo(self, lab, address=0): 		
         val = bf(self.read(self.map['LAB4_ROM_BASE']+(lab<<11)+address))
-        #print hex(val[31:0])
         sample0  = val[15:0]
         sample1  = val[31:16]
         return int(sample0), int(sample1)
 
     def log_lab(self, lab, samples=1024, force_trig=False, save=False, filename=''):
+        max_tries=10
         labs=[]
         if lab==15:
                 labs = range(12)
@@ -575,17 +602,30 @@ class SURF(ocpci.Device):
                 self.labc.force_trigger()
 
         board_data = []
+        tries=0
+        '''
+        while(not self.labc.check_fifo()):
+                if tries > max_tries:
+                        print 'no data available'
+                        return 1
+                else:
+                        print 'no data available, trying again..'
+                        time.sleep(0.05)
+                        tries=tries+1
+        '''               
         for chan in labs:
                 labdata=np.zeros(samples, dtype=np.int)
-                '''
-                if (self.labc.check_fifo(1) & (1<<chan) ):
-                        print 'lab %i fifo is empty' % chan
-                        continue
-                '''
                 for i in range(0, int(samples), 2):
-                        if (self.labc.check_fifo(1) & (1<<chan) ):
-                                print 'lab %i fifo was emptied, read out %i samples' % (chan, i)
-                                break
+                        tries=0
+                        while(self.labc.check_fifo(1) & (1<<chan) ):
+                                if tries > max_tries:
+                                        print 'no data available'
+                                        break
+                                else:
+                                        tries=tries+1
+                                        time.sleep(0.1)
+                                        print 'lab %i fifo was emptied, read out %i samples, trying again' % (chan, i)
+                                
                         labdata[i+1], labdata[i] = self.read_fifo(chan)
                         
                 board_data.append(labdata )

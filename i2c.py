@@ -1,5 +1,5 @@
 '''
-06-2016
+06-2016 
 Class to manage the OpenCores I2C controller core
 '''
 
@@ -46,9 +46,6 @@ class I2C:
     def check_ack(self):
         if (self.dev.read(self.base + self.map['SR']) & self.stat['RXACK']):
             raise Exception('No ACK from slave address: 0x{0:x}'.format(self.address))
-            return 1
-        else:
-            return 0
     '''
     start transaction, mode=1 for read, 0 for write
     ''' 
