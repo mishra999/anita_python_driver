@@ -623,8 +623,8 @@ class SURF(ocpci.Device):
                                         break
                                 else:
                                         tries=tries+1
-                                        time.sleep(0.1)
-                                        print 'lab %i fifo was emptied, read out %i samples, trying again' % (chan, i)
+                                        time.sleep(0.005)
+                                        #print 'lab %i fifo was emptied, read out %i samples, trying again' % (chan, i)
                                 
                         labdata[i+1], labdata[i] = self.read_fifo(chan)
                         
