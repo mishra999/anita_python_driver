@@ -9,24 +9,26 @@ import matplotlib.pyplot as plt
 matplotlib.rc('xtick', labelsize=14)
 matplotlib.rc('ytick', labelsize=14)
 
+EVENT_BUFFER=1024
+
 class SurfData:
     def __init__(self):
         self.dev=surf.SURF()
-        self.pedestals=np.zeros((4096, 12), dtype=np.int)
+        self.pedestals=np.zeros((EVENT_BUFFER*4, 12), dtype=np.int)
 
     def start(self):
+        self.pedestals=np.zeros((EVENT_BUFFER*4, 12), dtype=np.int)
         self.dev.labc.run_mode(0)
         self.dev.labc.reset_fifo()
         self.dev.labc.testpattern_mode(0)
         self.dev.labc.run_mode(1)
         
-    #def pedestals(lab, num_runs=100):   
     def log(self, lab, numevent, filename='temp.dat', save=True, subtract_ped=True, unwrap=True):
         self.start()
         time.sleep(1)
         data=[]
         for i in range(0, numevent):
-            data.append(self.dev.log_lab(lab, samples=1024, force_trig=True))
+            data.append(self.dev.log_lab(lab, samples=EVENT_BUFFER, force_trig=True))
             time.sleep(0.002)
             if i%5==0:
                 sys.stdout.write('logging event...{:}\r'.format(i))
@@ -46,20 +48,14 @@ class SurfData:
                     data[i][k][j] = (data[i][k][j] & 0x0FFF)-self.pedestals[j+datbuf*1024][k]
 
                 if unwrap and (end_of_buf_flag > 0):
-                    data[i][k][:] = np.roll(data[i][k][:], end_of_buf_flag)
+                    data[i][k][:] = np.roll(data[i][k][:], -int(end_of_buf_flag))
 
+      
         if save:
             sys.stdout.write('saving to file...{:}\n'.format(filename))
-
-            with open(filename, 'w') as filew:
-                for i in range(numevent):
-                    for j in range(0, len(data[0][0])):
-                       
-                        for k in range(0, len(data[0])):
-                                filew.write(str(data[i][k][j]))
-                                filew.write('\t')
-
-                        filew.write('\n')
+            np.savetxt(filename, np.array(data, dtype=int).reshape(len(data[0]), 
+                                                                   numevent*EVENT_BUFFER))
+            
         return data
 
     def pedestal_run(self, numruns=40, filename='peds.dat', save=True):
@@ -71,37 +67,28 @@ class SurfData:
             print 'pedestal run requires numruns be a multiple of 4'
             return 1
 
-        data = self.log(15, numruns, save=False, subtract_ped=False)
+        data = self.log(15, numruns, save=False, 
+                        subtract_ped=False, unwrap=False)
         ped_data=np.zeros((4096, 12), dtype=np.int)
         
         for i in range(0, len(data)):
-            for j in range(0, 1024):
+            for j in range(0, EVENT_BUFFER):
                 for k in range(0, len(data[0])):
-                    ped_data[j+(i%4)*1024,k] += (data[i][k][j] & 0x0FFF)
+                    ped_data[j+(i%4)*EVENT_BUFFER,k] += (data[i][k][j] & 0x0FFF)
         
         #ped_data = np.transpose(np.sum(np.bitwise_and(np.array(data).reshape((numruns/4, 12, 4096)), 0x0FFF), axis=0))
         ped_data /= (numruns / 4)
 
         print ped_data.shape
         if save:
-            with open(filename, 'w') as filew:
-                for j in range(0, 4096):
-                    for k in range(0, 12):
-                        filew.write(str(ped_data[j,k]))
-                        filew.write('\t')
-                    filew.write('\n')
+            np.savetxt(filename, ped_data)
 
 #        self.pedestals=ped_data
         return ped_data
 
     def load_ped(self, fromfile='peds.dat'):
         
-        with open(fromfile, 'r') as filer:
-            peds=[x.strip().split('\t') for x in filer]
-
-        for i in range(len(peds)):
-            for j in range(len(peds[0])):
-                self.pedestals[i][j]=peds[i][j]
+        self.pedestals = np.loadtxt(fromfile)
 
     def pedestal_scan(self, start=0, stop=4096, incr=100, filename='pedscan.dat', save=True):
         
