@@ -76,7 +76,7 @@ class SurfData:
                 for k in range(0, len(data[0])):
                     ped_data[j+(i%4)*EVENT_BUFFER,k] += (data[i][k][j] & 0x0FFF)
         
-        #ped_data = np.transpose(np.sum(np.bitwise_and(np.array(data).reshape((numruns/4, 12, 4096)), 0x0FFF), axis=0))
+        ##ped_data = np.transpose(np.sum(np.bitwise_and(np.array(data).reshape((numruns/4, 12, 4096)), 0x0FFF), axis=0))
         ped_data /= (numruns / 4)
 
         print ped_data.shape
