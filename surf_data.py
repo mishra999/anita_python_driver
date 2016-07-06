@@ -1,15 +1,10 @@
 import surf
 import numpy as np
-import matplotlib.pyplot as plt
 import time
 import sys
 #import h5py
-import matplotlib
-import matplotlib.pyplot as plt
-matplotlib.rc('xtick', labelsize=14)
-matplotlib.rc('ytick', labelsize=14)
 
-EVENT_BUFFER=1024
+EVENT_BUFFER=int(1024)
 
 class SurfData:
     def __init__(self):
@@ -30,10 +25,9 @@ class SurfData:
         for i in range(0, numevent):
             data.append(self.dev.log_lab(lab, samples=EVENT_BUFFER, force_trig=True))
             time.sleep(0.002)
-            if i%5==0:
-                sys.stdout.write('logging event...{:}\r'.format(i))
+            if (i+1)%10==0:
+                sys.stdout.write('logging event...{:}\r'.format(i+1))
                 sys.stdout.flush()
-        sys.stdout.write('\n')
 
         if subtract_ped:
             self.load_ped()
@@ -53,9 +47,16 @@ class SurfData:
       
         if save:
             sys.stdout.write('saving to file...{:}\n'.format(filename))
-            np.savetxt(filename, np.array(data, dtype=int).reshape(len(data[0]), 
-                                                                   numevent*EVENT_BUFFER))
-            
+            #np.savetxt(filename, np.array(data, dtype=int).reshape(len(data[0]), numevent*EVENT_BUFFER))
+            with open(filename, 'w') as filew:
+                for i in range(numevent):
+                    for j in range(0, len(data[0][0])):
+                       
+                        for k in range(0, len(data[0])):
+                                filew.write(str(data[i][k][j]))
+                                filew.write('\t')
+
+                        filew.write('\n')
         return data
 
     def pedestal_run(self, numruns=40, filename='peds.dat', save=True):
@@ -75,19 +76,16 @@ class SurfData:
             for j in range(0, EVENT_BUFFER):
                 for k in range(0, len(data[0])):
                     ped_data[j+(i%4)*EVENT_BUFFER,k] += (data[i][k][j] & 0x0FFF)
-        
+
+        '''the above process should be numpy-fied to run faster'''
         ##ped_data = np.transpose(np.sum(np.bitwise_and(np.array(data).reshape((numruns/4, 12, 4096)), 0x0FFF), axis=0))
         ped_data /= (numruns / 4)
-
-        print ped_data.shape
         if save:
             np.savetxt(filename, ped_data)
 
-#        self.pedestals=ped_data
         return ped_data
 
     def load_ped(self, fromfile='peds.dat'):
-        
         self.pedestals = np.loadtxt(fromfile)
 
     def pedestal_scan(self, start=0, stop=4096, incr=100, filename='pedscan.dat', save=True):
@@ -121,6 +119,11 @@ class SurfData:
 
     def read_ped_scan(self, lab, firstcell=0, cells=1, lo=0, hi=20,filename='pedscan.dat',
                       fit=True, fit_order=3, plot=False, plot_color='green'):
+
+        import matplotlib
+        import matplotlib.pyplot as plt
+        matplotlib.rc('xtick', labelsize=14)
+        matplotlib.rc('ytick', labelsize=14)
 
         with open(filename, 'r') as filer:
             pedscan=[x.strip().split('\t') for x in filer]

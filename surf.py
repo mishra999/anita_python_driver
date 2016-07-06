@@ -290,10 +290,11 @@ class LAB4_Controller:
                 else:
                         return rdout[3]
 
-        def dll(self, lab4, mode=False):
+        def dll(self, lab4, mode=False, sstoutfb=104):
                 '''enable/disable dll by setting VanN level'''
                 if mode:
                         self.run_mode(0)
+			self.l4reg(lab4, 386, int(sstoutfb)) #set sstoutfb (should already be set)
                         '''turn off internal Vadjn buffer bias'''
                         self.l4reg(lab4, 2, 0)      #PCLK-1=2 : VanN
                         
@@ -384,7 +385,7 @@ class LAB4_Controller:
                                         
                 self.l4reg(lab4, 16, 0)        #patrick said to add 6/9
 
-                for i in range (0, 128):       #PCLK-1=<255:383> : dTrim DACS
+                for i in range (0, 128):       #PCLK-1=<256:384> : dTrim DACS
                         #self.l4reg(lab4, i+256, 0)
                         self.l4reg(lab4, i+256, 1600)
 
