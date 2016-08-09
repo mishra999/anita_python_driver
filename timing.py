@@ -4,10 +4,15 @@ import sys
 import fit
 
 nominal_dt = 312.50000000000000 #ps
-max_trim   = 2540
+max_trim   = 2540 #sort-of arbitrary limit for trim-dac
 
-def zero_crossings(data, lab, mean_subtract=True):
-    
+def zero_crossings(data, lab, mean_subtract=True, prim_cell_zero_mean=True, return_cell_profile=False):
+    '''
+    zero crossings counter
+    data: should be numpy array
+    prim_cell_zero_mean: flag to calculate mean of each cell from full dataset and subtract cell-by-cell
+    return_cell_profile: return profile of each cell (a list of 128 lists)
+    '''    
     zero_crossings_all_channels=[]
         
     if not isinstance(lab, list):
@@ -19,10 +24,27 @@ def zero_crossings(data, lab, mean_subtract=True):
         num_entries = 0
         num_entries_wrap = 0
 
+        if prim_cell_zero_mean:
+            cell_profile = []
+            for c in range(128):
+                cell_profile.append([])
+            for i in range(len(data)):
+                d=data[i,l,:]
+                for buf in range(0, 8):
+                    for k in range(0, 128):
+                        cell_profile[k].append( d[k+(buf*128)])
+        
+            cell_profile_mean=np.zeros(128, dtype=float)
+            for c in range(128):
+                cell_profile_mean[c] = sum(cell_profile[c]) / float(len(cell_profile[c]))
+            
+            if return_cell_profile:
+                return cell_profile
+        
         for i in range(len(data)):       
             d = data[i,l,:]
 
-            if mean_subtract:
+            if mean_subtract and not prim_cell_zero_mean:
                 d = d-np.mean(d)
 
             for buf in range(0, 8):
@@ -31,27 +53,40 @@ def zero_crossings(data, lab, mean_subtract=True):
                 for k in range(0, 127):
                     v_samp    = d[k+(buf*128)]
                     v_samp_p1 = d[k+(buf*128)+1]
+
+                    if prim_cell_zero_mean:
+                        v_samp    = float(v_samp)    - cell_profile_mean[k]
+                        v_samp_p1 = float(v_samp_p1) - cell_profile_mean[k+1]
+
                     '''rising edge condition'''
-                    if (v_samp <= 0) and (v_samp_p1 > 0):
+                    if (v_samp <= 0.) and (v_samp_p1 > 0.):
                         zero_cross[k+1] = zero_cross[k+1] + 1.
                         zero_amps[k+1] = zero_amps[k+1] + abs(v_samp_p1-v_samp)
 
                     '''falling edge condition'''
-                    if (v_samp >= 0) and (v_samp_p1 < 0):
+                    if (v_samp >= 0.) and (v_samp_p1 < 0.):
                         zero_cross[k+1] = zero_cross[k+1] + 1.
                         zero_amps[k+1] = zero_amps[k+1] + abs(v_samp_p1-v_samp)
 
-                if (buf > 0) and (buf < 7):  #restrict buffer 0 for now, since wraparound correction boucing around
+                '''handle wraparound'''
+                if  (buf < 7):
+                    v_samp    = d[127+(buf*128)]
+                    v_samp_p1 = d[128+(buf*128)]
+                    
+                    if prim_cell_zero_mean:      
+                        v_samp    = float(v_samp)    - cell_profile_mean[127]
+                        v_samp_p1 = float(v_samp_p1) - cell_profile_mean[0]
+
                     '''rising edge condition for DLL seam'''
-                    if  (d[127+(buf*128)] <= 0) and (d[128+(buf*128)] > 0):
+                    if  (v_samp <= 0.) and (v_samp_p1 > 0.):
                         zero_cross[0] = zero_cross[0] + 1.
         
                     '''falling edge condition for DLL seam'''
-                    if  (d[127+(buf*128)] >= 0) and (d[128+(buf*128)] < 0):
+                    if  (v_samp >= 0.) and (v_samp_p1 < 0.):
                         zero_cross[0] = zero_cross[0] + 1.
 
                     num_entries_wrap = num_entries_wrap + 1
-    
+
         num_entries_array=np.ones(128, dtype=float) * num_entries * 2
         num_entries_array[0] = num_entries_wrap * 2
         zero_crossings_all_channels.append(np.divide(zero_cross, num_entries_array))
@@ -134,8 +169,8 @@ def set_initial(dev, lab, fbtrim=None, sstoutfb=104, dt_trims=None, write=True):
                 trims[i] = 1800 #2310 
             else:
                 trims[i] = 1350
-        trims[127]=1100 #last sample always seems to be a little slow
-
+        trims[127]= 900 #last sample always seems to be a little slow
+        trims[0]  = 0   #don't touch trim dac0, set fast as possible
     else:
         if isinstance(dt_trims, list):
             if len(dt_trims) != 128:
@@ -159,8 +194,8 @@ def set_trims(dev, lab, trims):
         dev.dev.labc.l4reg(lab, i+256, int(trims[i]) & 0xFFF)
     time.sleep(2.0)
 
-def single_run(dev, lab, num_events=1000):
-    data=np.array(dev.log(15, num_events, save=False, unwrap=True))
+def single_run(dev, lab, num_events=1000, save=False, filename='temp.dat'):
+    data=np.array(dev.log(15, num_events, save=save, filename=filename, unwrap=True))
     c = zero_crossings(data, lab)
 
     return c
@@ -171,7 +206,7 @@ def tune_dTs(dev, lab, dTcrossings, trims):
     new_trims=np.zeros(128, dtype=np.int)
 
     new_trims[0] = trims[0]
-    for i in range(0,128):
+    for i in range(1,128):
         if dTcrossings[i] < (nominal_dt - 40.0):
             new_trims[i] = trims[i] + 50
             print i, 'is really fast    ', dTcrossings[i], new_trims[i], trims[i]
@@ -314,23 +349,26 @@ def tune_feedback(dev, lab, fbscan, freq, forder=4, plot=False):
         plt.show()
 
     time.sleep(2) #let DLL settle
-    
+
+def rms(x):
+    return np.sqrt(np.sum(x**2) / float(len(x)))
 
 if __name__=='__main__':
     
     import surf_data
     import json
-
     dev=surf_data.SurfData()
 
-    Tin = 4.3000e-9
+    #Tin = 4.3000e-9
     #Tin = 7.3000e-9
     #Tin  = 11.30000e-9
-    freq=1./Tin
+    #freq=1./Tin
+    freq=230.000e6
+
     print 'using sine wave frequency', freq*1e-6, 'MHz'
 
-    num_iter  = 12
-    num_events= 1400
+    num_iter  = 13
+    num_events= 1500
     rms_target= 3.0 #ps
 
     lab=0
@@ -343,46 +381,39 @@ if __name__=='__main__':
     init_trims = set_initial(dev, lab)
     trims.append(init_trims)
 
-    '''run initial guesses'''
-    #crossings = single_run(dev, lab, num_events=num_events)
-    #mean_crossings = np.mean(first_crossings) 
-    #avg_sample_dt = mean_crossings * 1.e12 / freq 
-    #dTcrossings.append(first_crossings * 1.e12 / freq)
-    #rms = np.std(np.array(crossings[0]))
-
-    #print 'initial iteration.. -- dT RMS [ps]:' , rms, \
-    #    '-- avg dT [ps]', avg_sample_dt, '-- DLL wrap dT [ps]', crossings[0][0]
-    
     '''run scan'''
-    rms=100.
+    _rms=100.
     i=0
-    while (i < (num_iter+1)) and rms > rms_target:
+
+    basefilename = '230MHz_tune_run_0718_CH0'
+    while (i < (num_iter+1)) and _rms > rms_target:
 
         if i>0:
             trims.append(tune_dTs(dev, lab, dTcrossings[i-1], trims[i-1]))
-        '''
+        
         if i > 1:
             print 'tuning feedback trim...'
-            fbscan = scan_feedback(dev, lab, current_fb_value, sine_freq=freq, sine_amp=300., scan_range=range(1210, 1461, 10))
+            fbscan = scan_feedback(dev, lab, current_fb_value, sine_freq=freq, sine_amp=200., scan_range=range(1210, 1461, 10))
             tune_feedback(dev, lab, fbscan, freq)
             current_fb_value = fbscan[lab]['updated_trim']
             fbscan_dict.append(fbscan)
-        '''
-        crossings = single_run(dev, lab, num_events=num_events)
+        
+        savedatfile = basefilename + '_data_iter%d.dat' % i
+
+        crossings = single_run(dev, lab, num_events=num_events, save=True, filename=savedatfile)
         mean_crossings = np.mean(crossings[0], dtype=np.float64) 
         avg_sample_dt = mean_crossings * 1.e12 / freq 
         dTcrossings.append( crossings[0] * 1.e12 / freq)
-        rms = np.std(np.array(dTcrossings[i]))
+        _rms=rms(dTcrossings[i])
 
         print '---------------------------------'
-        print 'on iteration..', i, '-- dT RMS [ps]:' , rms, \
+        print 'on iteration..', i, '-- dT RMS [ps]:' , _rms, \
             '-- avg dT [ps]', avg_sample_dt, '-- DLL wrap dT [ps]', dTcrossings[i][0]
         print '---------------------------------'
-
         i = i+1
 
-    np.savetxt('crossings_236MHz_new_nofTrim.dat', np.array(dTcrossings))
-    np.savetxt('trims_236MHz_new_nofTrim.dat', np.array(trims))
+    np.savetxt('crossings_'+basefilename+'.dat', np.array(dTcrossings))
+    np.savetxt('trims_' + basefilename+'.dat', np.array(trims))
 
-    with open('fbdict_236MHz_new_nofTrim.dat', 'w') as outfile:
+    with open('fbdict_'+basefilename+'.dat', 'w') as outfile:
         json.dump(fbscan_dict, outfile)
