@@ -15,6 +15,50 @@ typedef struct {
 } ocpci_vfio_Device;
 
 static PyObject *
+ocpci_vfio_Device_dma_read(ocpci_vfio_Device *self, PyObject *args) {
+  // passed 2 integers (offset/size)
+  uint32_t offset;
+  uint32_t size;
+  int ret;
+  char *buf;
+  PyObject *bytearr;
+  
+  offset = 0;
+  if (!PyArg_ParseTuple(args, "I|I", &size, &offset)) return NULL;
+  buf = malloc(size);
+  if (!buf) {
+    PyErr_SetString(PyExc_MemoryError, "Could not allocate copy buffer");
+    return NULL;
+  }
+  ret = ocpci_lib_vfio_dma_read(&self->dev, buf, offset, size);
+  if (ret != OCPCI_SUCCESS) {
+    PyErr_SetString(PyExc_OverflowError, "Read is out of range");
+    return NULL;
+  }
+  bytearr = PyByteArray_FromStringAndSize(buf, size);
+  free(buf);
+  return bytearr;
+}
+
+static PyObject *
+ocpci_vfio_Device_dma_init(ocpci_vfio_Device *self, PyObject *args) {
+  // passed 2 integers (size, device base address)
+  uint32_t size;
+  __u64 base_address;
+  int ret;
+  if (!PyArg_ParseTuple(args, "KI", &base_address, &size)) return NULL;
+  ret = ocpci_lib_vfio_dma_init(&self->dev, base_address, size);
+  return Py_BuildValue("i", ret);
+}
+
+static PyObject *
+ocpci_vfio_Device_dma_finish(ocpci_vfio_Device *self) {
+  int ret;
+  ret = ocpci_lib_vfio_dma_finish(&self->dev);
+  return Py_BuildValue("i", ret);
+}
+
+static PyObject *
 ocpci_vfio_Device_read(ocpci_vfio_Device *self, PyObject *args) {
   // passed 1 integer 
   uint32_t offset;
@@ -49,6 +93,12 @@ static PyMethodDef ocpci_vfio_Device_methods[] = {
     "Read from a WISHBONE address behind the OpenCores PCI Bridge."},
   { "write", (PyCFunction) ocpci_vfio_Device_write, METH_VARARGS,
     "Write to a WISHBONE address behind the OpenCores PCI Bridge."},
+  { "dma_init", (PyCFunction) ocpci_vfio_Device_dma_init, METH_VARARGS,
+    "initialize a buffer for DMA at a device base address of a specific size."},
+  { "dma_finish", (PyCFunction) ocpci_vfio_Device_dma_finish, METH_NOARGS,
+    "end usage of DMA buffer."},
+  { "dma_read", (PyCFunction) ocpci_vfio_Device_dma_read, METH_VARARGS,
+    "read bytes from the DMA buffer at a specific offset."},
   { NULL } /* Sentinel */
 };
 
