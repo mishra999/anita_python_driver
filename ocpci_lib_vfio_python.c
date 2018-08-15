@@ -83,12 +83,22 @@ ocpci_vfio_Device_write(ocpci_vfio_Device *self, PyObject *args) {
   Py_RETURN_NONE;
 }
 
+// Default path.
+const char *ocpci_vfio_Device_path_default = "0000:02:0f.0";
+
+static PyObject *
+ocpci_vfio_Device_default_path() {
+  return PyString_FromString(ocpci_vfio_Device_path_default);
+}
+
 static PyMemberDef ocpci_vfio_Device_members[] = {
   {"path", T_OBJECT_EX, offsetof(ocpci_vfio_Device, path), 0, "VFIO PCI device path"},
   { NULL } /* Sentinel */
 };
 
 static PyMethodDef ocpci_vfio_Device_methods[] = {
+  { "default_path", (PyCFunction) ocpci_vfio_Device_default_path, METH_NOARGS | METH_STATIC,
+    "Get the default path to the device."},
   { "read", (PyCFunction) ocpci_vfio_Device_read, METH_VARARGS,
     "Read from a WISHBONE address behind the OpenCores PCI Bridge."},
   { "write", (PyCFunction) ocpci_vfio_Device_write, METH_VARARGS,
@@ -124,18 +134,18 @@ ocpci_vfio_Device_new( PyTypeObject *type, PyObject *args, PyObject *kwds) {
   return (PyObject *) self;
 }
 
-// Default path.
-const char *ocpci_vfio_Device_path_default = "0000:02:0f.0";
-
 static int
 ocpci_vfio_Device_init( ocpci_vfio_Device *self, PyObject *args, PyObject *kwds) {
-  static char *kwlist[] = {"path",NULL};
+  static char *kwlist[] = {"path","wb_size",NULL};
   PyObject *path_obj;
   const char *path;
+  uint32_t wb_size = 0;  
+
   path = ocpci_vfio_Device_path_default;
 
-  if (!PyArg_ParseTupleAndKeywords(args, kwds, "|s", kwlist,
-				   &path)) return -1;
+  // we ignore wb_size, it's only there to make our constructor the same as UIO's
+  if (!PyArg_ParseTupleAndKeywords(args, kwds, "|sI", kwlist,
+				   &path, &wb_size)) return -1;
   path_obj = PyString_FromString(path);
   if (path_obj == NULL) return -1;
   Py_DECREF(self->path);

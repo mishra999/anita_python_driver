@@ -44,7 +44,17 @@ static PyMemberDef ocpci_uio_Device_members[] = {
   { NULL } /* Sentinel */
 };
 
+// Default path.
+const char *ocpci_uio_Device_path_default = "/sys/class/uio/uio0";
+static PyObject *
+ocpci_uio_Device_default_path() {
+  return PyString_FromString(ocpci_uio_Device_path_default);
+}
+
+
 static PyMethodDef ocpci_uio_Device_methods[] = {
+  { "default_path", (PyCFunction) ocpci_uio_Device_default_path, METH_NOARGS | METH_STATIC,
+    "Get the default path to the device."},
   { "read", (PyCFunction) ocpci_uio_Device_read, METH_VARARGS,
     "Read from a WISHBONE address behind the OpenCores PCI Bridge."},
   { "write", (PyCFunction) ocpci_uio_Device_write, METH_VARARGS,
@@ -74,8 +84,6 @@ ocpci_uio_Device_new( PyTypeObject *type, PyObject *args, PyObject *kwds) {
   return (PyObject *) self;
 }
 
-// Default path.
-const char *ocpci_uio_Device_path_default = "/sys/class/uio/uio0";
 // Default size (8 MiB).
 const uint32_t ocpci_uio_Device_wb_size_default = 8*1024*1024;
 
