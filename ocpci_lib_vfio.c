@@ -52,6 +52,15 @@ int ocpci_lib_vfio_dma_init(ocpci_vfio_dev_h *dev,
   return ret;
 }
 
+int ocpci_lib_vfio_dma_enabled(ocpci_vfio_dev_h *dev) {
+  if (dev->size) return 1;
+  else return 0;
+}
+
+__u64 ocpci_lib_vfio_dma_base(ocpci_vfio_dev_h *dev) {
+  return dev->iova;
+}
+
 int ocpci_lib_vfio_dma_init_with_buffer(ocpci_vfio_dev_h *dev,
 					__u64 device_base,
 					void *buffer,

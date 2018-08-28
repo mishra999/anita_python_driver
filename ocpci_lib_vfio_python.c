@@ -15,6 +15,19 @@ typedef struct {
 } ocpci_vfio_Device;
 
 static PyObject *
+ocpci_vfio_Device_dma_base(ocpci_vfio_Device *self) {
+  __u64 iova;
+  iova = ocpci_lib_vfio_dma_base(&self->dev);
+  
+  return Py_BuildValue("K", iova);
+}
+
+static PyObject *
+ocpci_vfio_Device_dma_enabled(ocpci_vfio_Device *self) {
+  return Py_BuildValue("i", ocpci_lib_vfio_dma_enabled(&self->dev));
+}
+
+static PyObject *
 ocpci_vfio_Device_dma_read(ocpci_vfio_Device *self, PyObject *args) {
   // passed 2 integers (offset/size)
   uint32_t offset;
@@ -109,6 +122,10 @@ static PyMethodDef ocpci_vfio_Device_methods[] = {
     "end usage of DMA buffer."},
   { "dma_read", (PyCFunction) ocpci_vfio_Device_dma_read, METH_VARARGS,
     "read bytes from the DMA buffer at a specific offset."},
+  { "dma_enabled", (PyCFunction) ocpci_vfio_Device_dma_enabled, METH_NOARGS,
+    "return 1 if DMA buffer is enabled"},
+  { "dma_base", (PyCFunction) ocpci_vfio_Device_dma_base, METH_NOARGS,
+    "return device base address for DMA"},
   { NULL } /* Sentinel */
 };
 

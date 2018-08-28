@@ -15,6 +15,11 @@ typedef struct {
 } ocpci_uio_Device;
 
 static PyObject *
+ocpci_uio_Device_dma_enabled(ocpci_uio_Device *self) {
+  return Py_BuildValue("i", 0);
+}
+
+static PyObject *
 ocpci_uio_Device_read(ocpci_uio_Device *self, PyObject *args) {
   // passed 1 integer 
   uint32_t offset;
@@ -59,6 +64,8 @@ static PyMethodDef ocpci_uio_Device_methods[] = {
     "Read from a WISHBONE address behind the OpenCores PCI Bridge."},
   { "write", (PyCFunction) ocpci_uio_Device_write, METH_VARARGS,
     "Write to a WISHBONE address behind the OpenCores PCI Bridge."},
+  { "dma_enabled", (PyCFunction) ocpci_uio_Device_dma_enabled, METH_NOARGS,
+    "returns 0 (no DMA)"},  
   { NULL } /* Sentinel */
 };
 

@@ -68,4 +68,8 @@ int ocpci_lib_vfio_dma_read(ocpci_vfio_dev_h *dev,
 			    uint32_t offset,
 			    uint32_t size);
 
+int ocpci_lib_vfio_dma_enabled(ocpci_vfio_dev_h *dev);
+
+__u64 ocpci_lib_vfio_dma_base(ocpci_vfio_dev_h *dev);
+
 #endif
