@@ -21,7 +21,9 @@ typedef struct ocpci_vfio_dev_t {
   int container;
   int group;
   int device;
-
+  int irqfd;
+  int unmaskfd;
+  
   struct vfio_region_info conf_info;
   struct vfio_region_info bar0_info;
   struct vfio_region_info bar1_info;
@@ -71,5 +73,9 @@ int ocpci_lib_vfio_dma_read(ocpci_vfio_dev_h *dev,
 int ocpci_lib_vfio_dma_enabled(ocpci_vfio_dev_h *dev);
 
 __u64 ocpci_lib_vfio_dma_base(ocpci_vfio_dev_h *dev);
+
+int ocpci_lib_vfio_irq_wait(ocpci_vfio_dev_h *dev);
+int ocpci_lib_vfio_irq_unmask(ocpci_vfio_dev_h *dev);
+int ocpci_lib_vfio_irq_init(ocpci_vfio_dev_h *dev);
 
 #endif

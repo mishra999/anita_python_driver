@@ -15,6 +15,21 @@ typedef struct {
 } ocpci_vfio_Device;
 
 static PyObject *
+ocpci_vfio_Device_irq_init(ocpci_vfio_Device *self) {
+  return Py_BuildValue("i", ocpci_lib_vfio_irq_init(&self->dev));
+}
+
+static PyObject *
+ocpci_vfio_Device_irq_wait(ocpci_vfio_Device *self) {
+  return Py_BuildValue("i", ocpci_lib_vfio_irq_wait(&self->dev));
+}
+
+static PyObject *
+ocpci_vfio_Device_irq_unmask(ocpci_vfio_Device *self) {
+  return Py_BuildValue("i", ocpci_lib_vfio_irq_unmask(&self->dev));
+}
+
+static PyObject *
 ocpci_vfio_Device_dma_base(ocpci_vfio_Device *self) {
   __u64 iova;
   iova = ocpci_lib_vfio_dma_base(&self->dev);
@@ -126,6 +141,12 @@ static PyMethodDef ocpci_vfio_Device_methods[] = {
     "return 1 if DMA buffer is enabled"},
   { "dma_base", (PyCFunction) ocpci_vfio_Device_dma_base, METH_NOARGS,
     "return device base address for DMA"},
+  { "irq_init", (PyCFunction) ocpci_vfio_Device_irq_init, METH_NOARGS,
+    "initialize interrupts"},
+  { "irq_wait", (PyCFunction) ocpci_vfio_Device_irq_wait, METH_NOARGS,
+    "wait for an interrupt to occur"},
+  { "irq_unmask", (PyCFunction) ocpci_vfio_Device_irq_unmask, METH_NOARGS,
+    "unmask interrupts"},
   { NULL } /* Sentinel */
 };
 

@@ -10,10 +10,82 @@
 #include <sys/stat.h>
 #include <stdbool.h>
 #include <libgen.h>
+#include <sys/eventfd.h>
 
 #include "ocpci_lib_vfio.h"
 
 #define OCPCI_BAR_SIZE 4096
+
+int ocpci_lib_vfio_irq_wait(ocpci_vfio_dev_h *dev) {
+  uint64_t buf;
+  return (read(dev->irqfd,&buf, sizeof(buf))==sizeof(buf));
+}
+
+int ocpci_lib_vfio_irq_unmask(ocpci_vfio_dev_h *dev) {
+  uint64_t buf = 1;
+  return (write(dev->unmaskfd, &buf, sizeof(buf))==sizeof(buf));
+}
+
+int ocpci_lib_vfio_irq_init(ocpci_vfio_dev_h *dev) {
+
+  struct vfio_device_info device_info = {
+    .argsz = sizeof(device_info)
+  };
+  struct vfio_irq_info irq_info = {
+    .argsz = sizeof(irq_info),
+    .index = VFIO_PCI_INTX_IRQ_INDEX
+  };
+  struct vfio_irq_set *irq_set;
+  int32_t *pfd;
+  
+  if (ioctl(dev->device, VFIO_DEVICE_GET_INFO, &device_info)) {
+    fprintf(stderr, "ocpci_lib_vfio_irq_init: Unable to get device info.\n");
+    return OCPCI_ERR_OPEN;
+  }
+  if (device_info.num_irqs < VFIO_PCI_INTX_IRQ_INDEX + 1) {
+    fprintf(stderr, "ocpci_lib_vfio_irq_init: Error, device does not support INTx\n");
+    return OCPCI_ERR_OPEN;
+  }
+  if (ioctl(dev->device, VFIO_DEVICE_GET_IRQ_INFO, &irq_info)) {
+    fprintf(stderr, "ocpci_lib_vfio_irq_init: Unable to get IRQ info.\n");
+    return OCPCI_ERR_OPEN;
+  }
+  if (irq_info.count != 1 || !(irq_info.flags & VFIO_IRQ_INFO_EVENTFD)) {
+    fprintf(stderr, "ocpci_lib_vfio_irq_init: Unexpected IRQ info properties.\n");
+    return OCPCI_ERR_OPEN;
+  }
+  irq_set = malloc(sizeof(*irq_set) + sizeof(*pfd));
+  if (!irq_set) {
+    fprintf(stderr, "ocpci_lib_vfio_irq_init: Unable to malloc irq_set.\n");
+    return OCPCI_ERR_MEM;
+  }
+  irq_set->argsz = sizeof(*irq_set) + sizeof(*pfd);
+  irq_set->index = VFIO_PCI_INTX_IRQ_INDEX;
+  irq_set->start = 0;
+  pfd = (int32_t *)&irq_set->data;
+  
+  dev->irqfd = eventfd(0, EFD_CLOEXEC);
+  dev->unmaskfd = eventfd(0, EFD_CLOEXEC);
+  *pfd = dev->irqfd;
+  irq_set->flags = VFIO_IRQ_SET_DATA_EVENTFD | VFIO_IRQ_SET_ACTION_TRIGGER;
+  irq_set->count = 1;
+  if (ioctl(dev->device, VFIO_DEVICE_SET_IRQS, irq_set)) {
+    fprintf(stderr, "ocpci_lib_vfio_irq_init: Unable to assign irqfd to IRQ trigger\n");
+    return OCPCI_ERR_OPEN;
+  }
+  *pfd = dev->unmaskfd;
+  irq_set->flags = VFIO_IRQ_SET_DATA_EVENTFD | VFIO_IRQ_SET_ACTION_UNMASK;
+  if (ioctl(dev->device, VFIO_DEVICE_SET_IRQS, irq_set)) {
+    fprintf(stderr, "ocpci_lib_vfio_irq_init: Unable to assign unmaskfd to IRQ unmask\n");
+    return OCPCI_ERR_OPEN;
+  }
+  // and finally enable PCI interrupt propagation across bridge
+  uint32_t *icr = (uint32_t *) ((unsigned char *) dev->bar0 + 0x1EC);
+  *icr = 0x1;
+  
+  return OCPCI_SUCCESS;
+}
+			    
 
 bool ocpci_vfio_is_open(ocpci_vfio_dev_h *dev) {
   return dev->valid;
