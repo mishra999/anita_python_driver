@@ -12,6 +12,8 @@ sudo chmod 666 /sys/class/uio/uio0/device/resource0
 echo "permission changed on resource0"
 sudo chmod 666 /sys/class/uio/uio0/device/resource1
 echo "permission changed on resource 1"
+sudo chmod 666 /dev/uio0
+echo "permission changed on /dev/uio0"
 echo "  "
 echo "  "
 echo "PCI set-up complete" 

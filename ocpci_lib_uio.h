@@ -21,7 +21,8 @@ typedef struct ocpci_dev_t {
   int cfg_fd;
   int bar0_fd;
   int bar1_fd;
-
+  int irq_fd;
+  
   void *bar0;
   void *bar1;
   ocpci_bridge_regs_t *bridge;
@@ -41,5 +42,9 @@ unsigned int ocpci_lib_uio_bar0_read(ocpci_uio_dev_h *dev, uint32_t offset);
 int ocpci_lib_uio_bar0_write(ocpci_uio_dev_h *dev, uint32_t offset, unsigned int value);
 unsigned int ocpci_lib_uio_bar1_read(ocpci_uio_dev_h *dev, uint32_t offset);
 int ocpci_lib_uio_bar1_write(ocpci_uio_dev_h *dev, uint32_t offset, unsigned int value);
+
+int ocpci_lib_uio_irq_init(ocpci_uio_dev_h *dev);
+int ocpci_lib_uio_irq_wait(ocpci_uio_dev_h *dev);
+int ocpci_lib_uio_irq_unmask(ocpci_uio_dev_h *dev);
 
 #endif

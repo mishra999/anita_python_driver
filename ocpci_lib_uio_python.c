@@ -15,6 +15,22 @@ typedef struct {
 } ocpci_uio_Device;
 
 static PyObject *
+ocpci_uio_Device_irq_init(ocpci_uio_Device *self) {
+  return Py_BuildValue("i", ocpci_lib_uio_irq_init(&self->dev));
+}
+
+static PyObject *
+ocpci_uio_Device_irq_wait(ocpci_uio_Device *self) {
+  return Py_BuildValue("i", ocpci_lib_uio_irq_wait(&self->dev));
+}
+
+static PyObject *
+ocpci_uio_Device_irq_unmask(ocpci_uio_Device *self) {
+  return Py_BuildValue("i", ocpci_lib_uio_irq_unmask(&self->dev));
+}
+
+
+static PyObject *
 ocpci_uio_Device_dma_enabled(ocpci_uio_Device *self) {
   return Py_BuildValue("i", 0);
 }
@@ -66,6 +82,12 @@ static PyMethodDef ocpci_uio_Device_methods[] = {
     "Write to a WISHBONE address behind the OpenCores PCI Bridge."},
   { "dma_enabled", (PyCFunction) ocpci_uio_Device_dma_enabled, METH_NOARGS,
     "returns 0 (no DMA)"},  
+  { "irq_init", (PyCFunction) ocpci_uio_Device_irq_init, METH_NOARGS,
+    "initialize interrupts"},
+  { "irq_wait", (PyCFunction) ocpci_uio_Device_irq_wait, METH_NOARGS,
+    "wait for an interrupt to occur"},
+  { "irq_unmask", (PyCFunction) ocpci_uio_Device_irq_unmask, METH_NOARGS,
+    "unmask interrupts"},
   { NULL } /* Sentinel */
 };
 

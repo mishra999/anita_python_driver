@@ -13,9 +13,46 @@
 
 #define OCPCI_BAR_SIZE 4096
 
+const char *device_path = "/dev/";
 const char *config_path = "/device/config";
 const char *resource0_path = "/device/resource0";
 const char *resource1_path = "/device/resource1";
+
+int ocpci_lib_uio_irq_init(ocpci_uio_dev_h *dev) {
+  int err;
+
+  err = ocpci_lib_uio_irq_unmask(dev);
+  if (err) return err;
+  
+  // enable PCI interrupt propagation across bridge
+  dev->bridge->ICR = 0x1;
+}
+
+int ocpci_lib_uio_irq_wait(ocpci_uio_dev_h *dev) {
+  int reenable;
+  return (read(dev->irq_fd, &reenable, sizeof(int)) == sizeof(int));
+}
+
+int ocpci_lib_uio_irq_unmask(ocpci_uio_dev_h *dev) {
+  int err;
+  int configfd = dev->cfg_fd;
+  unsigned char command_high;
+
+  // unmask PCI interrupts
+  err = pread(configfd, &command_high, 1, 5);
+  if (err != 1) {
+    fprintf(stderr, "ocpci_lib_uio_irq_init: failed to read command register\n");
+    return OCPCI_ERR_OPEN;
+  }  
+  command_high &= ~0x4;
+  err = pwrite(configfd, &command_high, 1, 5);
+  if (err != 1) {
+    fprintf(stderr, "ocpci_lib_uio_irq_init: failed to write command register\n");
+    return OCPCI_ERR_OPEN;
+  }
+  return OCPCI_SUCCESS;
+}
+  
 
 bool ocpci_uio_is_open(ocpci_uio_dev_h *dev) {
   return dev->valid;
@@ -56,7 +93,8 @@ int ocpci_lib_uio_open(ocpci_uio_dev_h *dev,
 	       size_t wb_size) {
   char *tmpstr;
   size_t pathlen;
-
+  char *base;
+  
   if (!dev) return OCPCI_ERR_INVALID_HANDLE;
   dev->valid = 0;
   dev->wb_size = wb_size;
@@ -65,6 +103,15 @@ int ocpci_lib_uio_open(ocpci_uio_dev_h *dev,
   tmpstr = malloc(pathlen*sizeof(char) + 
 		  strlen(resource1_path)*sizeof(char) + 1);
   if (!tmpstr) return OCPCI_ERR_MEM;
+
+  base = basename(path);
+  sprintf(tmpstr, "%s%s", device_path, base);
+  dev->irq_fd = open(tmpstr, O_RDWR);
+  if (dev->irq_fd < 0) {
+    perror("ocpci_open: open irqfd");
+    free(tmpstr);
+    return OCPCI_ERR_OPEN;
+  }
 /*
  sprintf(tmpstr, "%s%s", path, config_path);
   dev->cfg_fd = open(tmpstr, O_RDWR | O_SYNC);
