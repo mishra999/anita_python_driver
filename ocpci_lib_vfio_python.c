@@ -21,7 +21,11 @@ ocpci_vfio_Device_irq_init(ocpci_vfio_Device *self) {
 
 static PyObject *
 ocpci_vfio_Device_irq_wait(ocpci_vfio_Device *self) {
-  return Py_BuildValue("i", ocpci_lib_vfio_irq_wait(&self->dev));
+  int ret;
+  Py_BEGIN_ALLOW_THREADS
+  ret = ocpci_lib_vfio_irq_wait(&self->dev);
+  Py_END_ALLOW_THREADS
+  return Py_BuildValue("i", ret);
 }
 
 static PyObject *
