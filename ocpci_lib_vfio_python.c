@@ -159,7 +159,7 @@ ocpci_vfio_Device_dealloc(ocpci_vfio_Device *self)
 {
   if (ocpci_vfio_is_open(&self->dev)) ocpci_lib_vfio_close(&self->dev);  
   Py_XDECREF(self->path);
-  self->ob_type->tp_free((PyObject*) self);
+  Py_TYPE(self)->tp_free((PyObject*)self);	
 }
 
 static PyObject *
