@@ -96,7 +96,7 @@ ocpci_uio_Device_dealloc(ocpci_uio_Device *self)
 {
   if (ocpci_uio_is_open(&self->dev)) ocpci_lib_uio_close(&self->dev);  
   Py_XDECREF(self->path);
-  self->ob_type->tp_free((PyObject*) self);
+  Py_TYPE(self)->tp_free((PyObject*)self);	
 }
 
 static PyObject *
