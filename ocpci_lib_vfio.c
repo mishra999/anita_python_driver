@@ -159,7 +159,7 @@ int ocpci_lib_vfio_dma_init_with_buffer(ocpci_vfio_dev_h *dev,
   dev->size = size;
   dev->iova = device_base;
   
-  dma_map.vaddr = dev->buffer;
+  dma_map.vaddr = (__u64) dev->buffer;
   dma_map.size = dev->size;
   dma_map.flags = VFIO_DMA_MAP_FLAG_READ | VFIO_DMA_MAP_FLAG_WRITE;
   dma_map.iova = device_base;
@@ -306,7 +306,6 @@ int ocpci_lib_vfio_open(ocpci_vfio_dev_h *dev,
 		   const char *devstr) {
   char path[50], iommu_group_path[50];
   char *group_name;
-  size_t pathlen;
   struct stat st;
   struct vfio_group_status group_status = {
     .argsz = sizeof(struct vfio_group_status),
@@ -318,7 +317,6 @@ int ocpci_lib_vfio_open(ocpci_vfio_dev_h *dev,
   if (!dev) return OCPCI_ERR_INVALID_HANDLE;
   dev->valid = 0;
   dev->size = 0;
-  pathlen = strlen(path);
 
   dev->container = open("/dev/vfio/vfio", O_RDWR);
   if (dev->container < 0) {
