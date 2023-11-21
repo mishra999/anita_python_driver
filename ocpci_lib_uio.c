@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <stdbool.h>
+#include <libgen.h>
 
 #include "ocpci_lib_uio.h"
 
@@ -104,7 +105,7 @@ int ocpci_lib_uio_open(ocpci_uio_dev_h *dev,
 		  strlen(resource1_path)*sizeof(char) + 1);
   if (!tmpstr) return OCPCI_ERR_MEM;
 
-  base = basename(path);
+  base = basename((char *) path);
   sprintf(tmpstr, "%s%s", device_path, base);
   dev->irq_fd = open(tmpstr, O_RDWR);
   if (dev->irq_fd < 0) {
