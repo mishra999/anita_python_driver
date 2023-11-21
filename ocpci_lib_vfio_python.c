@@ -120,7 +120,7 @@ const char *ocpci_vfio_Device_path_default = "0000:02:0f.0";
 
 static PyObject *
 ocpci_vfio_Device_default_path() {
-  return PyString_FromString(ocpci_vfio_Device_path_default);
+  return PyUnicode_FromString(ocpci_vfio_Device_path_default);
 }
 
 static PyMemberDef ocpci_vfio_Device_members[] = {
@@ -167,7 +167,7 @@ ocpci_vfio_Device_new( PyTypeObject *type, PyObject *args, PyObject *kwds) {
   ocpci_vfio_Device *self;
   self = (ocpci_vfio_Device *) type->tp_alloc(type, 0);
   if (self != NULL) {
-    self->path = PyString_FromString("");
+    self->path = PyUnicode_FromString("");
     if (self->path == NULL) {
       Py_DECREF(self);
       return NULL;
@@ -188,7 +188,7 @@ ocpci_vfio_Device_init( ocpci_vfio_Device *self, PyObject *args, PyObject *kwds)
   // we ignore wb_size, it's only there to make our constructor the same as UIO's
   if (!PyArg_ParseTupleAndKeywords(args, kwds, "|sI", kwlist,
 				   &path, &wb_size)) return -1;
-  path_obj = PyString_FromString(path);
+  path_obj = PyUnicode_FromString(path);
   if (path_obj == NULL) return -1;
   Py_DECREF(self->path);
   self->path = path_obj;
