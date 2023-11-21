@@ -27,6 +27,7 @@ int ocpci_lib_uio_irq_init(ocpci_uio_dev_h *dev) {
   
   // enable PCI interrupt propagation across bridge
   dev->bridge->ICR = 0x1;
+  return err;
 }
 
 int ocpci_lib_uio_irq_wait(ocpci_uio_dev_h *dev) {
