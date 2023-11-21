@@ -62,7 +62,7 @@ ocpci_vfio_Device_dma_read(ocpci_vfio_Device *self, PyObject *args) {
     PyErr_SetString(PyExc_MemoryError, "Could not allocate copy buffer");
     return NULL;
   }
-  ret = ocpci_lib_vfio_dma_read(&self->dev, buf, offset, size);
+  ret = ocpci_lib_vfio_dma_read(&self->dev, (unsigned char *) buf, offset, size);
   if (ret != OCPCI_SUCCESS) {
     PyErr_SetString(PyExc_OverflowError, "Read is out of range");
     return NULL;
