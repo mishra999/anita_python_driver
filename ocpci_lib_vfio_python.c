@@ -196,47 +196,63 @@ ocpci_vfio_Device_init( ocpci_vfio_Device *self, PyObject *args, PyObject *kwds)
   return 0;
 }
 
+// use specifiers instead
 static PyTypeObject ocpci_vfio_DeviceType = {
-    PyObject_HEAD_INIT(NULL)
-    0,                         /*ob_size*/
-    "ocpci_vfio.Device",       /*tp_name*/
-    sizeof(ocpci_vfio_Device), /*tp_basicsize*/
-    0,                         /*tp_itemsize*/
-    (destructor) ocpci_vfio_Device_dealloc, /*tp_dealloc*/
-    0,                         /*tp_print*/
-    0,                         /*tp_getattr*/
-    0,                         /*tp_setattr*/
-    0,                         /*tp_compare*/
-    0,                         /*tp_repr*/
-    0,                         /*tp_as_number*/
-    0,                         /*tp_as_sequence*/
-    0,                         /*tp_as_mapping*/
-    0,                         /*tp_hash */
-    0,                         /*tp_call*/
-    0,                         /*tp_str*/
-    0,                         /*tp_getattro*/
-    0,                         /*tp_setattro*/
-    0,                         /*tp_as_buffer*/
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,        /*tp_flags*/
-    "OCPCI VFIO Devices",      /* tp_doc */
-    0,		               /* tp_traverse */
-    0,		               /* tp_clear */
-    0,		               /* tp_richcompare */
-    0,		               /* tp_weaklistoffset */
-    0,		               /* tp_iter */
-    0,		               /* tp_iternext */
-    ocpci_vfio_Device_methods,      /* tp_methods */
-    ocpci_vfio_Device_members,      /* tp_members */
-    0,                         /* tp_getset */
-    0,                         /* tp_base */
-    0,                         /* tp_dict */
-    0,                         /* tp_descr_get */
-    0,                         /* tp_descr_set */
-    0,                         /* tp_dictoffset */
-    (initproc)ocpci_vfio_Device_init,      /* tp_init */
-    0,                         /* tp_alloc */
-    ocpci_vfio_Device_new,          /* tp_new */
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "ocpci_vfio.Device",
+  .tp_doc = PyDoc_STR("OCPCI VFIO Devices"),
+  .tp_basicsize = sizeof(ocpci_vfio_Device),
+  .tp_itemsize = 0,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+  .tp_init = (initproc)ocpci_vfio_Device_init,
+  .tp_new = ocpci_vfio_Device_new,
+  .tp_dealloc = (destructor) ocpci_vfio_Device_dealloc,
+  .tp_methods = ocpci_vfio_Device_methods,
+  .tp_members = ocpci_vfio_Device_members,
 };
+
+
+//static PyTypeObject ocpci_vfio_DeviceType = {
+//    PyObject_HEAD_INIT(NULL)
+//    0,                         /*ob_size*/
+//    "ocpci_vfio.Device",       /*tp_name*/
+//    sizeof(ocpci_vfio_Device), /*tp_basicsize*/
+//    0,                         /*tp_itemsize*/
+//    (destructor) ocpci_vfio_Device_dealloc, /*tp_dealloc*/
+//    0,                         /*tp_print*/
+//    0,                         /*tp_getattr*/
+//    0,                         /*tp_setattr*/
+//    0,                         /*tp_compare*/
+//    0,                         /*tp_repr*/
+//    0,                         /*tp_as_number*/
+//    0,                         /*tp_as_sequence*/
+//    0,                         /*tp_as_mapping*/
+//    0,                         /*tp_hash */
+//    0,                         /*tp_call*/
+//    0,                         /*tp_str*/
+//    0,                         /*tp_getattro*/
+//    0,                         /*tp_setattro*/
+//    0,                         /*tp_as_buffer*/
+//    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,        /*tp_flags*/
+//    "OCPCI VFIO Devices",      /* tp_doc */
+//    0,		               /* tp_traverse */
+//    0,		               /* tp_clear */
+//    0,		               /* tp_richcompare */
+//    0,		               /* tp_weaklistoffset */
+//    0,		               /* tp_iter */
+//    0,		               /* tp_iternext */
+//    ocpci_vfio_Device_methods,      /* tp_methods */
+//    ocpci_vfio_Device_members,      /* tp_members */
+//    0,                         /* tp_getset */
+//    0,                         /* tp_base */
+//    0,                         /* tp_dict */
+//    0,                         /* tp_descr_get */
+//    0,                         /* tp_descr_set */
+//    0,                         /* tp_dictoffset */
+//    (initproc)ocpci_vfio_Device_init,      /* tp_init */
+//    0,                         /* tp_alloc */
+//    ocpci_vfio_Device_new,          /* tp_new */
+//};
 
 
 static PyMethodDef module_methods[] = {
@@ -247,19 +263,30 @@ static PyMethodDef module_methods[] = {
 #define PyMODINIT_FUNC void
 #endif
 
+static struct PyModuleDef ocpci_vfio_module =
+{
+    PyModuleDef_HEAD_INIT,
+    "ocpci_vfio", /* name of module */
+    "OpenCores PCI Bridge VFIO library.", /* docs */
+    -1,   /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+    module_methods
+};
+
+
 PyMODINIT_FUNC
-initocpci_vfio(void)
+PyInit_ocpci_vfio(void)
 {
   PyObject *m;
   if (PyType_Ready(&ocpci_vfio_DeviceType) < 0) 
-    return;
+    return NULL;
 
-  m = Py_InitModule3("ocpci_vfio", module_methods,
-		     "OpenCores PCI Bridge VFIO library.");
-  
+  //  m = Py_InitModule3("ocpci_vfio", module_methods,
+  //"OpenCores PCI Bridge VFIO library.");
+  m = PyModule_Create(&ocpci_vfio_module);  
   if (m == NULL) 
-    return;
+    return m;
   
   Py_INCREF(&ocpci_vfio_DeviceType);
   PyModule_AddObject(m, "Device", (PyObject *) &ocpci_vfio_DeviceType);
+  return m;
 }
