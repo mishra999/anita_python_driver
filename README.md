@@ -62,8 +62,8 @@ Add these modules:
 3. echo "options vfio-pci ids=10ee:ff00"> /etc/modprobe.d/vfio.conf
 
 ## Note
-simple_script.py: to read data from all LABs using forced trigger
-simple_script9.py: to read data from single LAB
-simple_scripts81.py: to read test pattern from single LAB
+simple_script.py: to read data from all LABs using forced trigger,
+simple_script9.py: to read data from single LAB,
+simple_scripts81.py: to read test pattern from single LAB.
 
 
