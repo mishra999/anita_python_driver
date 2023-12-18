@@ -1,4 +1,5 @@
 # anita-python
+Originally from Patrick Allison: 
 Python testing libraries for ANITA. This contains only the common functions - the OCPCI classes,
 the bitfield class, the SPI class, and the PicoBlaze class. Device scripts should derive from the
 ocpci.Device class.
