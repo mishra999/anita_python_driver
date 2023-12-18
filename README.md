@@ -1,5 +1,4 @@
 # anita-python
-Written by Patrick Allison
 Python testing libraries for ANITA. This contains only the common functions - the OCPCI classes,
 the bitfield class, the SPI class, and the PicoBlaze class. Device scripts should derive from the
 ocpci.Device class.
@@ -48,3 +47,15 @@ anita            -       memlock         16384
 ```
 
 Then log out, and back in. `ulimit -l` should show the new limit.
+
+##New instructions to set up VFIO
+1. vi /etc/modules-load.d/loadmodules.conf Add these modules: vfio, vfio_iommu_type1, vfio_pci
+
+2. echo "options vfio_iommu_type1 allow_unsafe_interrupts=1" > /etc/modprobe.d/iommu_unsafe_interrupts.conf echo "options kvm ignore_msrs=1" > /etc/modprobe.d/kvm.conf
+
+3. echo "options vfio-pci ids=10ee:ff00"> /etc/modprobe.d/vfio.conf
+
+## Note
+First install anita_python_driver and check if VFIO works. Then go to 'surf_python' and start using 'simple_scripts' to test the readout.
+
+Also keep 'anita_python' and 'surf_python' folders with the same parent folder
