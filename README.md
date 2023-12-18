@@ -62,5 +62,6 @@ Add these modules:
 3. echo "options vfio-pci ids=10ee:ff00"> /etc/modprobe.d/vfio.conf
 
 
-
+## Note
+First install anita_python_driver and check if VFIO works. Then go to 'surf_python' and start using 'simple_scripts' to test the readout.
 
