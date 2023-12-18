@@ -59,4 +59,4 @@ Then log out, and back in. `ulimit -l` should show the new limit.
 ## Note
 First install anita_python_driver and check if VFIO works. Then go to 'surf_python' and start using 'simple_scripts' to test the readout.
 
-Also keep 'anita_python' and 'surf_python' folders with the same parent folder
+Also keep 'anita_python' and 'surf_python' folders within the same parent folder
