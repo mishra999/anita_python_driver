@@ -10,8 +10,8 @@ import sys
 # before anything else.
 
 this = sys.modules[__name__]
-this.backend = ocpci_uio
-this.Device = ocpci_uio.Device
+this.backend = ocpci_vfio
+this.Device = ocpci_vfio.Device
 
 def set_backend(classname):
     this.backend = classname

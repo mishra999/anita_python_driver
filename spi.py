@@ -1,8 +1,9 @@
 import struct
 import sys
 import time
-import hexfile
-from bf import * 
+# import hexfile
+# import the bitfield class without a name, it's too useful
+from anita_python.bf import *
 
 
 #
@@ -48,9 +49,9 @@ class SPI:
         self.base = base
         self.device = device 
         val = bf(self.dev.read(self.base + self.map['SPCR']))
-        val[6] = 1;
-        val[3] = 0;
-        val[2] = 0;
+        val[6] = 1
+        val[3] = 0
+        val[2] = 0
         self.dev.write(self.base + self.map['SPCR'], int(val))
         res = self.command(self.cmd['RES'], 3, 1)
         self.electronic_signature = res[0]
@@ -62,13 +63,13 @@ class SPI:
     def command(self, command, dummy_bytes, num_read_bytes, data_in = [] ):
         self.dev.spi_cs(self.device, 1)
         self.dev.write(self.base + self.map['SPDR'], command)
-	x = 0 
-	for dat in data_in:
-	    self.dev.write(self.base + self.map['SPDR'], dat)
-	    val = bf(self.map['SPSR'])
-	    x+=1
+        x = 0 
+        for dat in data_in:
+            self.dev.write(self.base + self.map['SPDR'], dat)
+            val = bf(self.map['SPSR'])
+            x+=1
             if val[6] == 1:
-	        return x 	
+                return x 	
         for i in range(dummy_bytes):
             self.dev.write(self.base + self.map['SPDR'], 0x00)
         # Empty the read FIFO.
@@ -87,9 +88,9 @@ class SPI:
     
 
     def identify(self):
-        print "Electronic Signature: 0x%x" % self.electronic_signature
-        print "Manufacturer ID: 0x%x" % self.manufacturer_id
-        print "Memory Type: 0x%x Memory Capacity: %d bytes" % (self.memory_type, self.memory_capacity)
+        print ("Electronic Signature: 0x%x" % self.electronic_signature)
+        print ("Manufacturer ID: 0x%x" % self.manufacturer_id)
+        print ("Memory Type: 0x%x Memory Capacity: %d bytes" % (self.memory_type, self.memory_capacity))
 #        res = self.command(self.cmd['RES'], 3, 1)
 #        print "Electronic Signature: 0x%x" % res[0]
 #        res = self.command(self.cmd['RDID'], 0, 3)
@@ -111,7 +112,7 @@ class SPI:
             data_in.append((address >> 8) & 0xFF)
             data_in.append(address & 0xFF)
             result = self.command(self.cmd['3READ'], 0, length, data_in)
-	return result 
+        return result 
 
 	
     def write_enable(self):
@@ -122,66 +123,66 @@ class SPI:
             if not res & 0x2:
                 trials = trials + 1
             else:
-                print "Write enable succeeded (%d)." % res
+                print ("Write enable succeeded (%d)." % res)
                 break
 
     def write_disable(self):
         disable = self.command(self.cmd["WRDI"], 0, 0)
         res = self.status()
         if res & 0x2:
-            print "Write disable failed (%d)!" % res
+            print ("Write disable failed (%d)!" % res)
 
-    def program_mcs(self, filename):
-        f = hexfile.load(filename)
-        # Figure out what sectors we need to erase.
-        sector_size = 0
-        total_size = 0
-        page_size = 256
-        if self.memory_capacity == 2**24:
-            sector_size = 256*1024
-            total_size = self.memory_capacity
-        elif self.memory_capacity == 2**25:
-            sector_size = 256*1024
-            total_size = self.memory_capacity
-        elif self.memory_capacity == 2**20:
-            sector_size = 64*1024
-            total_size = self.memory_capacity
-        else:
-            print "Don't know how to program flash with capacity %d" % self.memory_capacity
-            return
-        erase_sectors = [0]*(total_size/sector_size)
-        sector_list = []
-        for seg in f.segments:
-            print "Segment %s starts at %d" % (seg, seg.start_address)
-            start_sector = seg.start_address/sector_size
-            print "This is sector %d" % start_sector
-            if erase_sectors[start_sector] == 0:
-                erase_sectors[start_sector] = 1
-                sector_list.append(start_sector)
-            end_address = seg.end_address
-            end_sector = start_sector + 1
-            while end_sector*sector_size < seg.end_address:
-                if erase_sectors[end_sector] == 0:
-                    erase_sectors[end_sector] = 1
-                    sector_list.append(end_sector)
-                end_sector = end_sector + 1
-        for erase in sector_list:
-            print "I think I should erase sector %d" % erase
-            self.erase(erase*sector_size)
-        for seg in f.segments:
-            start = seg.start_address
-            end = 0
-            while start < seg.size:
-                end = start + page_size
-                if end > seg.end_address:
-                    end = seg.end_address
-                data = seg[start:end].data
-                print "Programming %d-%d" % (start, end)
-                self.page_program(start, data)
-                start = end
+    # def program_mcs(self, filename):
+    #     f = hexfile.load(filename)
+    #     # Figure out what sectors we need to erase.
+    #     sector_size = 0
+    #     total_size = 0
+    #     page_size = 256
+    #     if self.memory_capacity == 2**24:
+    #         sector_size = 256*1024
+    #         total_size = self.memory_capacity
+    #     elif self.memory_capacity == 2**25:
+    #         sector_size = 256*1024
+    #         total_size = self.memory_capacity
+    #     elif self.memory_capacity == 2**20:
+    #         sector_size = 64*1024
+    #         total_size = self.memory_capacity
+    #     else:
+    #         print ("Don't know how to program flash with capacity %d" % self.memory_capacity)
+    #         return
+    #     erase_sectors = [0]*(total_size/sector_size)
+    #     sector_list = []
+    #     for seg in f.segments:
+    #         print ("Segment %s starts at %d" % (seg, seg.start_address))
+    #         start_sector = seg.start_address/sector_size
+    #         print ("This is sector %d" % start_sector)
+    #         if erase_sectors[start_sector] == 0:
+    #             erase_sectors[start_sector] = 1
+    #             sector_list.append(start_sector)
+    #         end_address = seg.end_address
+    #         end_sector = start_sector + 1
+    #         while end_sector*sector_size < seg.end_address:
+    #             if erase_sectors[end_sector] == 0:
+    #                 erase_sectors[end_sector] = 1
+    #                 sector_list.append(end_sector)
+    #             end_sector = end_sector + 1
+    #     for erase in sector_list:
+    #         print ("I think I should erase sector %d" % erase)
+    #         self.erase(erase*sector_size)
+    #     for seg in f.segments:
+    #         start = seg.start_address
+    #         end = 0
+    #         while start < seg.size:
+    #             end = start + page_size
+    #             if end > seg.end_address:
+    #                 end = seg.end_address
+    #             data = seg[start:end].data
+    #             print( "Programming %d-%d" % (start, end))
+    #             self.page_program(start, data)
+    #             start = end
                 
-        self.write_disable()
-        print "Complete!"
+    #     self.write_disable()
+    #     print ("Complete!")
 
     def page_program(self, address, data_write = []):
         self.write_enable()
@@ -206,7 +207,7 @@ class SPI:
             trials = trials + 1
 
     def erase(self, address): 
-	self.write_enable()
+        self.write_enable()
         if self.memory_capacity > 2**24:
             data = []
             data.append((address >> 24) & 0xFF)
@@ -221,24 +222,24 @@ class SPI:
             data.append((address & 0xFF))
             erase = self.command(self.cmd["3SE"], 0, 0, data)
         res = self.status()
-        print "Checking for erase start..."
+        print ("Checking for erase start...")
         trials = 0
         while trials < 10:
             res = self.status()
             if res & 0x1:
                 break
-        print "Erase started. Waiting for erase complete..."
+        print ("Erase started. Waiting for erase complete...")
         trials = 0
         while res & 0x1:
             res = self.status()
             trials = trials + 1
-        print "Erase complete after %d trials." % trials
+        print ("Erase complete after %d trials." % trials)
 
     def write_bank_address(self, bank):
         if self.memory_capacity > 2**24:
             return
-	bank_write = self.command(self.cmd["BRWR"], 0, 0, [ bank ])
-	return bank_write 	
+        bank_write = self.command(self.cmd["BRWR"], 0, 0, [ bank ])
+        return bank_write 	
 	
 
     def read_bank_address(self):
@@ -246,8 +247,8 @@ class SPI:
             res = []
             res.append(0)
             return res
-	bank_read = self.command(self.cmd["BRRD"], 0, 1)
-	return bank_read
+        bank_read = self.command(self.cmd["BRRD"], 0, 1)
+        return bank_read
 	
 	
 	

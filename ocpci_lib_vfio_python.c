@@ -116,7 +116,7 @@ ocpci_vfio_Device_write(ocpci_vfio_Device *self, PyObject *args) {
 }
 
 // Default path.
-const char *ocpci_vfio_Device_path_default = "0000:02:0f.0";
+const char *ocpci_vfio_Device_path_default = "0000:05:0c.0";
 
 static PyObject *
 ocpci_vfio_Device_default_path() {

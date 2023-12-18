@@ -1,4 +1,4 @@
-from bf import *
+from anita_python.bf import *
 
 class PicoBlaze:
     instr0_map = { (0x00>>1) : "LOAD",
@@ -71,21 +71,21 @@ class PicoBlaze:
             for line in f:
                 instr = int(line, 16)
                 if bramaddr == 0:
-                    print "PicoBlaze address 0 (reset) instruction: %8.8x" % instr
+                    print ("PicoBlaze address 0 (reset) instruction: %8.8x" % instr)
                 ctrl[17:0] = instr
                 ctrl[27:18] = bramaddr
                 self.dev.write(self.addr, int(ctrl))
                 bramaddr = bramaddr + 1
                 if bramaddr > 1023:
                     break
-        print oldctrl[31]
+        print (oldctrl[31])
         if oldctrl[31] == 1:
-            print "Leaving PicoBlaze in reset."
+            print( "Leaving PicoBlaze in reset.")
         else:
-            print "Pulling PicoBlaze out of reset."
+            print( "Pulling PicoBlaze out of reset.")
             ctrl = 0
             self.dev.write(self.addr, int(ctrl))
-        print "PicoBlaze address 0 (reset) readback: %8.8x" % (self.dev.read(self.addr) & 0xFFFFFFFF)        
+        print ("PicoBlaze address 0 (reset) readback: %8.8x" % (self.dev.read(self.addr) & 0xFFFFFFFF)  )      
         
         
     @staticmethod

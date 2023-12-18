@@ -31,7 +31,7 @@ class I2C:
         if enable_core:
             self.dev.write(self.base + self.map['CTR'], 0x80)
         else:
-            print 'you probably meant to enable the i2c core'
+            print ('you probably meant to enable the i2c core')
 
     '''
     transfer-in-progress loop

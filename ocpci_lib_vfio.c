@@ -373,7 +373,15 @@ int ocpci_lib_vfio_open(ocpci_vfio_dev_h *dev,
     close(dev->container);
     return OCPCI_ERR_OPEN;
   }
-  ret = ioctl(dev->container, VFIO_SET_IOMMU, VFIO_TYPE1v2_IOMMU);
+  if (!ioctl(dev->group, VFIO_CHECK_EXTENSION, VFIO_TYPE1_IOMMU))
+        /* Doesn't support the IOMMU driver we want. */
+    {
+    perror("ocpci_lib_vfio_open: Doesn't support the IOMMU driver VFIO_TYPE1v2_IOMMU\n");
+    close(dev->group);
+    close(dev->container);
+    return OCPCI_ERR_OPEN;
+    }
+  ret = ioctl(dev->container, VFIO_SET_IOMMU, VFIO_TYPE1v2_IOMMU); //VFIO_TYPE1v2_IOMMU
   if (ret) {
     perror("ocpci_lib_vfio_open: failed to set IOMMU\n");
     close(dev->group);
