@@ -52,13 +52,18 @@ Then log out, and back in. `ulimit -l` should show the new limit.
 ## New instructions to set up VFIO
 1. vi /etc/modules-load.d/loadmodules.conf
 Add these modules:
-  vfio
-  vfio_iommu_type1
+  vfio,
+  vfio_iommu_type1,
   vfio_pci
 
 2. echo "options vfio_iommu_type1 allow_unsafe_interrupts=1" > /etc/modprobe.d/iommu_unsafe_interrupts.conf
    echo "options kvm ignore_msrs=1" > /etc/modprobe.d/kvm.conf
 
 3. echo "options vfio-pci ids=10ee:ff00"> /etc/modprobe.d/vfio.conf
+
+## Note
+simple_script.py: to read data from all LABs using forced trigger
+simple_script9.py: to read data from single LAB
+simple_scripts81.py: to read test pattern from single LAB
 
 
